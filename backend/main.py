@@ -1,10 +1,11 @@
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import HTMLResponse # <--- NEW IMPORT
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import subprocess
 import os
 import shutil
 import json
+from report_generator import generate_pdf # <--- Import your new engine
 
 app = FastAPI()
 
@@ -15,36 +16,58 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- THIS IS THE NEW PART ---
-# Instead of returning text, we read the HTML file and send it to the browser.
 @app.get("/", response_class=HTMLResponse)
 def home():
     with open("index.html", "r", encoding="utf-8") as f:
         return f.read()
-# ----------------------------
 
+# 1. SCREEN SCAN (Returns JSON)
 @app.post("/scan")
 async def scan_code(file: UploadFile = File(...)):
     temp_filename = f"temp_{file.filename}"
-    
     with open(temp_filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
-    # Run Semgrep
-    command = [
-        "semgrep", 
-        "scan", 
-        "--config=quantum_rules.yaml", 
-        temp_filename, 
-        "--json"
-    ]
+    results = run_semgrep(temp_filename)
     
-    result = subprocess.run(command, capture_output=True, text=True)
-    
+    # Clean up
     if os.path.exists(temp_filename):
         os.remove(temp_filename)
+        
+    return results
+
+# 2. PDF REPORT (Returns File)
+@app.post("/report")
+async def get_report(file: UploadFile = File(...)):
+    # Save file
+    temp_filename = f"temp_report_{file.filename}"
+    with open(temp_filename, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
     
+    # 1. Scan it
+    scan_data = run_semgrep(temp_filename)
+    
+    # 2. Generate PDF
+    pdf_filename = f"report_{file.filename}.pdf"
+    # Detect environment (Cloud vs Local)
+    output_path = f"/tmp/{pdf_filename}" if os.path.exists("/tmp") else pdf_filename
+    
+    generate_pdf(scan_data['results'], filename=output_path)
+    
+    # Clean up input file
+    if os.path.exists(temp_filename):
+        os.remove(temp_filename)
+        
+    # 3. Send PDF to user
+    return FileResponse(output_path, media_type='application/pdf', filename=pdf_filename)
+
+# Helper function to run the command (Shared by both endpoints)
+def run_semgrep(filename):
+    command = [
+        "semgrep", "scan", "--config=quantum_rules.yaml", filename, "--json"
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
     try:
         return json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return {"error": "Failed to parse scan results", "raw_output": result.stderr}
+    except:
+        return {"results": []}

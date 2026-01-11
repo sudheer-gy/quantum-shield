@@ -33,6 +33,10 @@
         .critical { border-left-color: #ef4444; }
         .warning { border-left-color: #eab308; }
         
+        /* NEW: Download Button Style */
+        .download-btn { display: none; margin-top: 20px; background: #22c55e; width: 100%; }
+        .download-btn:hover { background: #16a34a; }
+
         pre { background: #020617; padding: 15px; border-radius: 6px; overflow-x: auto; color: #a5b4fc; }
         
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; display: none; }
@@ -58,7 +62,8 @@
 
         <div class="results-area" id="resultsArea">
             <h2 style="border-bottom: 1px solid #334155; padding-bottom: 10px;">Audit Results</h2>
-            <div id="findingsList"></div>
+            <button id="downloadBtn" class="download-btn">📄 Download Official PDF Report</button>
+            <div id="findingsList" style="margin-top: 20px;"></div>
         </div>
     </div>
 
@@ -67,32 +72,31 @@
         const loader = document.getElementById('loader');
         const resultsArea = document.getElementById('resultsArea');
         const findingsList = document.getElementById('findingsList');
+        const downloadBtn = document.getElementById('downloadBtn');
+        let currentFile = null;
 
         fileInput.addEventListener('change', async function() {
             const file = fileInput.files[0];
             if (!file) return;
+            currentFile = file; // Save for PDF generation
 
-            // 1. Show Loading State
+            // Reset UI
             loader.style.display = 'block';
             resultsArea.style.display = 'none';
+            downloadBtn.style.display = 'none'; // Hide button initially
             findingsList.innerHTML = '';
 
-            // 2. Prepare Data
             const formData = new FormData();
             formData.append("file", file);
 
             try {
-                // 3. Send to Backend API
-                const response = await fetch("/scan", {
-                    method: "POST",
-                    body: formData
-                });
-                
+                // 1. Get JSON Results
+                const response = await fetch("/scan", { method: "POST", body: formData });
                 const data = await response.json();
                 
-                // 4. Render Results
                 loader.style.display = 'none';
                 resultsArea.style.display = 'block';
+                downloadBtn.style.display = 'block'; // Show button now
 
                 if (data.results && data.results.length > 0) {
                     data.results.forEach(issue => {
@@ -100,7 +104,7 @@
                         const severity = isCritical ? 'critical' : 'warning';
                         const badge = isCritical ? '🚨 CRITICAL' : '⚠️ WARNING';
 
-                        const card = `
+                        findingsList.innerHTML += `
                             <div class="card ${severity}">
                                 <h3 style="margin: 0 0 10px 0;">${badge}: ${issue.check_id}</h3>
                                 <p style="color: #94a3b8; font-size: 0.9em;">File: ${issue.path} (Line ${issue.start.line})</p>
@@ -108,7 +112,6 @@
                                 <p><strong>Fix:</strong> ${issue.extra.message}</p>
                             </div>
                         `;
-                        findingsList.innerHTML += card;
                     });
                 } else {
                     findingsList.innerHTML = '<div class="card" style="border-left-color: #22c55e;"><h3>✅ No Vulnerabilities Found</h3><p>This code appears quantum-safe.</p></div>';
@@ -117,7 +120,32 @@
             } catch (error) {
                 console.error(error);
                 loader.style.display = 'none';
-                alert("Error connecting to server. Is the backend running?");
+                alert("Error connecting to server.");
+            }
+        });
+
+        // Handle PDF Download
+        downloadBtn.addEventListener('click', async () => {
+            if (!currentFile) return;
+            downloadBtn.innerText = "Generating PDF...";
+            
+            const formData = new FormData();
+            formData.append("file", currentFile);
+
+            const response = await fetch("/report", { method: "POST", body: formData });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "Quantum_Audit_Report.pdf";
+                document.body.appendChild(a);
+                a.click();
+                downloadBtn.innerText = "📄 Download Official PDF Report";
+            } else {
+                alert("Failed to generate report");
+                downloadBtn.innerText = "Error";
             }
         });
     </script>
