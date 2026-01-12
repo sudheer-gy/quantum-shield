@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import HTMLResponse, FileResponse
+from database import get_db_connection
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import subprocess
@@ -25,18 +26,48 @@ class FixRequest(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 def home():
-    with open("index.html", "r", encoding="utf-8") as f:
-        return f.read()
+    try:
+        with open("index.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "<h1>Quantum Shield Backend is Running</h1>"
 
-# 1. SCREEN SCAN (Returns JSON)
+# 1. SCREEN SCAN (Returns JSON + SAVES TO DB)
 @app.post("/scan")
 async def scan_code(file: UploadFile = File(...)):
+    # Save temp file
     temp_filename = f"temp_{file.filename}"
     with open(temp_filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
+    # Run the scan
     results = run_semgrep(temp_filename)
     
+    # --- NEW: Save to Supabase ---
+    try:
+        # 1. Get stats
+        vulnerabilities = results.get("results", [])
+        risk_level = "High" if len(vulnerabilities) > 0 else "Low"
+        
+        # 2. Connect to DB
+        supabase = get_db_connection()
+        
+        # 3. Insert Data
+        if supabase:
+            data = {
+                "filename": file.filename,
+                "vulnerability_count": len(vulnerabilities),
+                "risk_level": risk_level
+            }
+            supabase.table("scans").insert(data).execute()
+            print(f"✅ Saved scan for {file.filename} to Supabase!")
+        else:
+            print("⚠️ Database connection failed, skipping save.")
+            
+    except Exception as e:
+        print(f"❌ Database Error: {e}")
+    # -----------------------------
+
     # Clean up
     if os.path.exists(temp_filename):
         os.remove(temp_filename)
@@ -60,7 +91,7 @@ async def get_report(file: UploadFile = File(...)):
     # Detect environment (Cloud vs Local)
     output_path = f"/tmp/{pdf_filename}" if os.path.exists("/tmp") else pdf_filename
     
-    generate_pdf(scan_data['results'], filename=output_path)
+    generate_pdf(scan_data.get('results', []), filename=output_path)
     
     # Clean up input file
     if os.path.exists(temp_filename):
