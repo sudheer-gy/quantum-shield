@@ -10,8 +10,8 @@ def fix_code(vulnerability_type, code_snippet):
 
     try:
         genai.configure(api_key=api_key)
-        # We use 'gemini-1.5-flash' because it is fast and free
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # We use 'gemini-pro' because it is the latest model
+        model = genai.GenerativeModel('gemini-pro')
 
         prompt = f"""
         You are a Top-Tier Cybersecurity Expert specializing in Post-Quantum Cryptography (PQC).
