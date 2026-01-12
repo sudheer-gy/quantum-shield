@@ -1,21 +1,18 @@
-import google.generativeai as genai
+from google import genai
 import os
 
-# Configure the AI with the key from the cloud "Safe"
 def fix_code(vulnerability_type, code_snippet):
     api_key = os.environ.get("GEMINI_API_KEY")
     
     if not api_key:
-        return "Error: Server missing API Key. Check Render Environment variables."
+        return "Error: Server missing API Key."
 
     try:
-        genai.configure(api_key=api_key)
-        # We use 'gemini-pro' because it is the latest model
-        model = genai.GenerativeModel('gemini-pro')
-
-        prompt = f"""
-        You are a Top-Tier Cybersecurity Expert specializing in Post-Quantum Cryptography (PQC).
+        # NEW SYNTAX: Initialize the Client
+        client = genai.Client(api_key=api_key)
         
+        prompt = f"""
+        You are a Cybersecurity Expert.
         The user has code with this vulnerability: "{vulnerability_type}"
         
         Here is the vulnerable code snippet:
@@ -25,13 +22,15 @@ def fix_code(vulnerability_type, code_snippet):
         
         TASK:
         Rewrite this code to be QUANTUM-SECURE. 
-        - If it uses RSA/ECC, replace it with AES-256 (GCM) or a Quantum-Safe alternative.
         - Provide ONLY the code. Do not write explanations. 
-        - If the snippet is too small to fix, provide a secure example of how that function should look.
         """
 
-        response = model.generate_content(prompt)
-        # Clean up the AI response to get just the code
+        # Call the model (Using the latest stable flash model)
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=prompt
+        )
+        
         return response.text.replace('```python', '').replace('```java', '').replace('```', '').strip()
 
     except Exception as e:

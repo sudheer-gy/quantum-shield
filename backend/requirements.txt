@@ -3,4 +3,4 @@ uvicorn
 python-multipart
 semgrep
 fpdf
-google-generativeai
+google-genai
