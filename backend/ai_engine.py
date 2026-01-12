@@ -8,7 +8,7 @@ def fix_code(vulnerability_type, code_snippet):
         return "Error: Server missing API Key."
 
     try:
-        # NEW SYNTAX: Initialize the Client
+        # Initialize the Client
         client = genai.Client(api_key=api_key)
         
         prompt = f"""
@@ -25,13 +25,16 @@ def fix_code(vulnerability_type, code_snippet):
         - Provide ONLY the code. Do not write explanations. 
         """
 
-        # Call the model (Using the latest stable flash model)
+        # Call the model (Using the specific '001' version for stability)
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-1.5-flash-001',
             contents=prompt
         )
         
-        return response.text.replace('```python', '').replace('```java', '').replace('```', '').strip()
+        if response.text:
+            return response.text.replace('```python', '').replace('```java', '').replace('```', '').strip()
+        else:
+            return "Error: AI returned empty response."
 
     except Exception as e:
         return f"AI Error: {str(e)}"
