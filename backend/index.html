@@ -78,6 +78,13 @@
     </div>
 
     <script>
+        // ==========================================
+        // 👇 YOUR LIVE RENDER URL
+        // ==========================================
+        const API_BASE_URL = "https://quantum-shield.onrender.com"; 
+        
+        // ⚠️ Note: No slash '/' at the very end.
+
         const fileInput = document.getElementById('fileInput');
         const loader = document.getElementById('loader');
         const resultsArea = document.getElementById('resultsArea');
@@ -99,7 +106,8 @@
             formData.append("file", file);
 
             try {
-                const response = await fetch("/scan", { method: "POST", body: formData });
+                // 👇 CONNECTS TO CLOUD
+                const response = await fetch(`${API_BASE_URL}/scan`, { method: "POST", body: formData });
                 const data = await response.json();
                 
                 loader.style.display = 'none';
@@ -113,7 +121,6 @@
                         const badge = isCritical ? '🚨 CRITICAL' : '⚠️ WARNING';
                         const codeSnippet = issue.extra.lines.trim();
 
-                        // Create unique IDs for this card's button and result area
                         const btnId = `fix-btn-${index}`;
                         const resultId = `fix-result-${index}`;
 
@@ -143,7 +150,7 @@
             } catch (error) {
                 console.error(error);
                 loader.style.display = 'none';
-                alert("Error connecting to server.");
+                alert("Error connecting to server. Please check your URL in index.html!");
             }
         });
 
@@ -158,7 +165,8 @@
             btn.disabled = true;
 
             try {
-                const response = await fetch("/fix", {
+                // 👇 CONNECTS TO CLOUD
+                const response = await fetch(`${API_BASE_URL}/fix`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ code: code, issue: issue })
@@ -174,7 +182,7 @@
                 `;
                 btn.innerText = "✨ Fixed!";
             } catch (error) {
-                alert("AI failed to respond. Check API Key.");
+                alert("AI failed to respond. Check server.");
                 btn.innerText = "❌ Error";
             }
         }
@@ -185,7 +193,9 @@
             downloadBtn.innerText = "Generating PDF...";
             const formData = new FormData();
             formData.append("file", currentFile);
-            const response = await fetch("/report", { method: "POST", body: formData });
+            
+            // 👇 CONNECTS TO CLOUD
+            const response = await fetch(`${API_BASE_URL}/report`, { method: "POST", body: formData });
             
             if (response.ok) {
                 const blob = await response.blob();
