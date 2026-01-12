@@ -48,7 +48,9 @@ def generate_pdf(results, filename="audit_report.pdf"):
             pdf.set_fill_color(254, 226, 226) # Light Red bg
             pdf.set_text_color(185, 28, 28) # Dark Red text
             pdf.set_font("Helvetica", "B", 10)
-            check_id = issue.get('check_id', 'Unknown Issue')
+            
+            # Clean text to prevent encoding crashes
+            check_id = issue.get('check_id', 'Unknown Issue').encode('latin-1', 'replace').decode('latin-1')
             pdf.cell(0, 8, f" {check_id}", 0, 1, fill=True)
             
             # File Location
@@ -62,20 +64,19 @@ def generate_pdf(results, filename="audit_report.pdf"):
             pdf.set_fill_color(241, 245, 249) # Slate 100
             pdf.set_font("Courier", "", 8)
             code = issue.get('extra', {}).get('lines', '').strip()
+            # Clean code text
+            code = code.encode('latin-1', 'replace').decode('latin-1')
             pdf.multi_cell(0, 5, code, fill=True)
             
             # Recommendation
             pdf.set_font("Helvetica", "I", 9)
             msg = issue.get('extra', {}).get('message', 'No fix provided.')
+            # Clean message text
+            msg = msg.encode('latin-1', 'replace').decode('latin-1')
             pdf.multi_cell(0, 5, f"Fix: {msg}")
             
             pdf.ln(5) # Space between issues
 
-    # Output
-    output_path = f"/tmp/{filename}" if filename != "audit_report.pdf" else filename
-    # Local windows fallback for testing
-    if not output_path.startswith("/tmp/"):
-        output_path = filename
-        
-    pdf.output(output_path)
-    return output_path
+    # Output - TRUST THE FILENAME PASSED FROM MAIN.PY
+    pdf.output(filename)
+    return filename
