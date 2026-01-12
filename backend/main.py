@@ -1,11 +1,13 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import subprocess
 import os
 import shutil
 import json
-from report_generator import generate_pdf # <--- Import your new engine
+from report_generator import generate_pdf
+from ai_engine import fix_code  # <--- NEW IMPORT
 
 app = FastAPI()
 
@@ -15,6 +17,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Define the data format for AI requests
+class FixRequest(BaseModel):
+    code: str
+    issue: str
 
 @app.get("/", response_class=HTMLResponse)
 def home():
@@ -48,6 +55,7 @@ async def get_report(file: UploadFile = File(...)):
     scan_data = run_semgrep(temp_filename)
     
     # 2. Generate PDF
+    # Use Helvetica via report_generator to avoid font errors
     pdf_filename = f"report_{file.filename}.pdf"
     # Detect environment (Cloud vs Local)
     output_path = f"/tmp/{pdf_filename}" if os.path.exists("/tmp") else pdf_filename
@@ -60,6 +68,13 @@ async def get_report(file: UploadFile = File(...)):
         
     # 3. Send PDF to user
     return FileResponse(output_path, media_type='application/pdf', filename=pdf_filename)
+
+# 3. AI AUTO-FIX (NEW)
+@app.post("/fix")
+async def get_ai_fix(request: FixRequest):
+    # Ask the AI Engine to rewrite the code
+    fixed_code = fix_code(request.issue, request.code)
+    return {"fixed_code": fixed_code}
 
 # Helper function to run the command (Shared by both endpoints)
 def run_semgrep(filename):
