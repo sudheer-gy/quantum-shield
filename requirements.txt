@@ -4,3 +4,4 @@ python-multipart
 semgrep
 fpdf
 google-genai
+supabase
