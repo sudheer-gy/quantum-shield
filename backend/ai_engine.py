@@ -8,8 +8,8 @@ def fix_code(vulnerability_type, code_snippet):
         return "Error: Server missing API Key."
 
     try:
-        # Initialize the Client
-        client = genai.Client(api_key=api_key)
+        # FORCE the 'v1' stable version to avoid Beta errors
+        client = genai.Client(api_key=api_key, http_options={'api_version': 'v1'})
         
         prompt = f"""
         You are a Cybersecurity Expert.
@@ -25,9 +25,8 @@ def fix_code(vulnerability_type, code_snippet):
         - Provide ONLY the code. Do not write explanations. 
         """
 
-        # Call the model (Using the specific '001' version for stability)
         response = client.models.generate_content(
-            model='gemini-1.5-flash-001',
+            model='gemini-1.5-flash',
             contents=prompt
         )
         
@@ -37,4 +36,5 @@ def fix_code(vulnerability_type, code_snippet):
             return "Error: AI returned empty response."
 
     except Exception as e:
+        # If it fails, let's see what IS working to debug it
         return f"AI Error: {str(e)}"
