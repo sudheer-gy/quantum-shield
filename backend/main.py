@@ -7,7 +7,7 @@ import subprocess
 import os
 import shutil
 import json
-import uuid  # <--- NEW IMPORT for unique folder names
+import uuid  # For unique folder names
 from report_generator import generate_pdf
 from ai_engine import fix_code
 
@@ -25,7 +25,7 @@ class FixRequest(BaseModel):
     code: str
     issue: str
 
-# Define the data format for Repo requests (NEW)
+# Define the data format for Repo requests
 class RepoRequest(BaseModel):
     repo_url: str
 
@@ -91,9 +91,7 @@ async def get_report(file: UploadFile = File(...)):
     scan_data = run_semgrep(temp_filename)
     
     # 2. Generate PDF
-    # Use Helvetica via report_generator to avoid font errors
     pdf_filename = f"report_{file.filename}.pdf"
-    # Detect environment (Cloud vs Local)
     output_path = f"/tmp/{pdf_filename}" if os.path.exists("/tmp") else pdf_filename
     
     generate_pdf(scan_data.get('results', []), filename=output_path)
@@ -113,21 +111,19 @@ async def get_ai_fix(request: FixRequest):
     return {"fixed_code": fixed_code}
 
 # ---------------------------------------------------------
-# 4. GITHUB REPO SCANNER (NEW FEATURE)
+# 4. GITHUB REPO SCANNER
 # ---------------------------------------------------------
 @app.post("/scan-repo")
 async def scan_repo(request: RepoRequest):
     repo_url = request.repo_url
     
-    # 1. Create a unique folder name
-    # We use UUID so if two people scan at the same time, folders don't clash
+    # 1. Create a unique folder name using UUID
     folder_name = f"temp_repo_{uuid.uuid4()}"
     
     try:
         print(f"📥 Cloning {repo_url}...")
         
-        # 2. Clone the repo (Download it to the server)
-        # We use 'subprocess' to run the git command
+        # 2. Clone the repo
         subprocess.run(["git", "clone", repo_url, folder_name], check=True)
         
         # 3. Run Semgrep on the ENTIRE folder
@@ -141,7 +137,7 @@ async def scan_repo(request: RepoRequest):
             supabase = get_db_connection()
             if supabase:
                 data = {
-                    "filename": repo_url, # We save the URL instead of a filename
+                    "filename": repo_url,
                     "vulnerability_count": len(vulnerabilities),
                     "risk_level": risk_level
                 }
@@ -157,17 +153,33 @@ async def scan_repo(request: RepoRequest):
         
     finally:
         # 5. CLEANUP: Always delete the folder afterwards
-        # This is crucial so your server doesn't run out of space!
         if os.path.exists(folder_name):
             shutil.rmtree(folder_name)
             print(f"🧹 Cleaned up {folder_name}")
 
-# Helper function to run the command (Shared by both endpoints)
+# ---------------------------------------------------------
+# HELPER: Semgrep Runner (UPDATED)
+# ---------------------------------------------------------
 def run_semgrep(filename):
+    # 👇 UPDATED COMMAND:
+    # 1. --config=p/default      <-- Standard Security Rules (OWASP, SANS)
+    # 2. --config=quantum_rules.yaml <-- Your Custom Quantum Rules
     command = [
-        "semgrep", "scan", "--config=quantum_rules.yaml", filename, "--json"
+        "semgrep", 
+        "scan", 
+        "--config=p/default", 
+        "--config=quantum_rules.yaml", 
+        filename, 
+        "--json"
     ]
+    
+    # Capture output and errors
     result = subprocess.run(command, capture_output=True, text=True)
+    
+    # Print errors to the console log if something goes wrong
+    if result.returncode != 0:
+        print(f"⚠️ Semgrep Warning/Error: {result.stderr}")
+
     try:
         return json.loads(result.stdout)
     except:
