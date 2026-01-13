@@ -7,8 +7,9 @@ import subprocess
 import os
 import shutil
 import json
+import uuid  # <--- NEW IMPORT for unique folder names
 from report_generator import generate_pdf
-from ai_engine import fix_code  # <--- NEW IMPORT
+from ai_engine import fix_code
 
 app = FastAPI()
 
@@ -23,6 +24,10 @@ app.add_middleware(
 class FixRequest(BaseModel):
     code: str
     issue: str
+
+# Define the data format for Repo requests (NEW)
+class RepoRequest(BaseModel):
+    repo_url: str
 
 @app.get("/", response_class=HTMLResponse)
 def home():
@@ -43,7 +48,7 @@ async def scan_code(file: UploadFile = File(...)):
     # Run the scan
     results = run_semgrep(temp_filename)
     
-    # --- NEW: Save to Supabase ---
+    # --- Save to Supabase ---
     try:
         # 1. Get stats
         vulnerabilities = results.get("results", [])
@@ -100,12 +105,62 @@ async def get_report(file: UploadFile = File(...)):
     # 3. Send PDF to user
     return FileResponse(output_path, media_type='application/pdf', filename=pdf_filename)
 
-# 3. AI AUTO-FIX (NEW)
+# 3. AI AUTO-FIX
 @app.post("/fix")
 async def get_ai_fix(request: FixRequest):
     # Ask the AI Engine to rewrite the code
     fixed_code = fix_code(request.issue, request.code)
     return {"fixed_code": fixed_code}
+
+# ---------------------------------------------------------
+# 4. GITHUB REPO SCANNER (NEW FEATURE)
+# ---------------------------------------------------------
+@app.post("/scan-repo")
+async def scan_repo(request: RepoRequest):
+    repo_url = request.repo_url
+    
+    # 1. Create a unique folder name
+    # We use UUID so if two people scan at the same time, folders don't clash
+    folder_name = f"temp_repo_{uuid.uuid4()}"
+    
+    try:
+        print(f"📥 Cloning {repo_url}...")
+        
+        # 2. Clone the repo (Download it to the server)
+        # We use 'subprocess' to run the git command
+        subprocess.run(["git", "clone", repo_url, folder_name], check=True)
+        
+        # 3. Run Semgrep on the ENTIRE folder
+        print(f"🔍 Scanning {folder_name}...")
+        results = run_semgrep(folder_name)
+        
+        # 4. Save Stats to Supabase
+        try:
+            vulnerabilities = results.get("results", [])
+            risk_level = "High" if len(vulnerabilities) > 0 else "Low"
+            supabase = get_db_connection()
+            if supabase:
+                data = {
+                    "filename": repo_url, # We save the URL instead of a filename
+                    "vulnerability_count": len(vulnerabilities),
+                    "risk_level": risk_level
+                }
+                supabase.table("scans").insert(data).execute()
+                print(f"✅ Saved repo scan for {repo_url}")
+        except Exception as e:
+            print(f"❌ DB Error: {e}")
+
+        return results
+
+    except Exception as e:
+        return {"error": f"Failed to scan repo: {str(e)}"}
+        
+    finally:
+        # 5. CLEANUP: Always delete the folder afterwards
+        # This is crucial so your server doesn't run out of space!
+        if os.path.exists(folder_name):
+            shutil.rmtree(folder_name)
+            print(f"🧹 Cleaned up {folder_name}")
 
 # Helper function to run the command (Shared by both endpoints)
 def run_semgrep(filename):
