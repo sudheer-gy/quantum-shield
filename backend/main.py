@@ -158,12 +158,20 @@ async def scan_repo(request: RepoRequest):
             print(f"🧹 Cleaned up {folder_name}")
 
 # ---------------------------------------------------------
-# HELPER: Semgrep Runner (UPDATED)
+# HELPER: Semgrep Runner (DEBUG VERSION)
 # ---------------------------------------------------------
 def run_semgrep(filename):
-    # 👇 UPDATED COMMAND:
-    # 1. --config=p/default      <-- Standard Security Rules (OWASP, SANS)
-    # 2. --config=quantum_rules.yaml <-- Your Custom Quantum Rules
+    print(f"🕵️‍♂️ DEBUG: Starting scan on {filename}...")
+    
+    # 1. Check if the rules file actually exists on the server
+    if not os.path.exists("quantum_rules.yaml"):
+        print("❌ CRITICAL ERROR: quantum_rules.yaml is MISSING from the server!")
+        # Force an error so we see it in the UI/Logs
+        return {"results": [{"check_id": "SERVER_ERROR", "path": filename, "start": {"line": 1}, "extra": {"lines": "CRITICAL: quantum_rules.yaml is missing."}}]}
+    else:
+        print("✅ quantum_rules.yaml found on server.")
+
+    # 2. Run the scan with BOTH config files (Standard + Quantum)
     command = [
         "semgrep", 
         "scan", 
@@ -173,14 +181,17 @@ def run_semgrep(filename):
         "--json"
     ]
     
-    # Capture output and errors
+    print(f"🖥️ CMD: {' '.join(command)}")
+
+    # 3. Capture EVERYTHING (Output + Errors)
     result = subprocess.run(command, capture_output=True, text=True)
     
-    # Print errors to the console log if something goes wrong
-    if result.returncode != 0:
-        print(f"⚠️ Semgrep Warning/Error: {result.stderr}")
+    # 4. Print the "Secret" Logs to Render
+    print(f"⚠️ STDERR (Errors): {result.stderr}")
+    print(f"📄 STDOUT (Results): {result.stdout[:500]}") # Print first 500 chars
 
     try:
         return json.loads(result.stdout)
-    except:
+    except Exception as e:
+        print(f"💥 JSON Parse Error: {e}")
         return {"results": []}
