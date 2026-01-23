@@ -37,6 +37,21 @@ def home():
     except FileNotFoundError:
         return "<h1>Quantum Shield Backend is Running</h1>"
 
+# --- 🔍 DEBUG ENDPOINT (Bypasses Uploads) ---
+@app.get("/test-internal")
+def test_internal_scan():
+    # 1. Create a file DIRECTLY on the server (No upload)
+    filename = "internal_test.py"
+    # We write a file guaranteed to trigger MD5 (Quantum) and Hardcoded Password (Standard)
+    with open(filename, "w") as f:
+        f.write("import hashlib\ndef bad_code():\n    return hashlib.md5(b'123').hexdigest()\n    password = 'secret'")
+    
+    print(f"🕵️‍♂️ INTERNAL TEST: Created {filename} with size {os.path.getsize(filename)} bytes.")
+    
+    # 2. Scan it
+    results = run_semgrep(filename)
+    return results
+
 # 1. SCREEN SCAN (Returns JSON + SAVES TO DB)
 @app.post("/scan")
 async def scan_code(file: UploadFile = File(...)):
@@ -110,27 +125,20 @@ async def get_ai_fix(request: FixRequest):
     fixed_code = fix_code(request.issue, request.code)
     return {"fixed_code": fixed_code}
 
-# ---------------------------------------------------------
 # 4. GITHUB REPO SCANNER
-# ---------------------------------------------------------
 @app.post("/scan-repo")
 async def scan_repo(request: RepoRequest):
     repo_url = request.repo_url
-    
-    # 1. Create a unique folder name using UUID
     folder_name = f"temp_repo_{uuid.uuid4()}"
     
     try:
         print(f"📥 Cloning {repo_url}...")
-        
-        # 2. Clone the repo
         subprocess.run(["git", "clone", repo_url, folder_name], check=True)
         
-        # 3. Run Semgrep on the ENTIRE folder
         print(f"🔍 Scanning {folder_name}...")
         results = run_semgrep(folder_name)
         
-        # 4. Save Stats to Supabase
+        # Save Stats to Supabase
         try:
             vulnerabilities = results.get("results", [])
             risk_level = "High" if len(vulnerabilities) > 0 else "Low"
@@ -152,7 +160,6 @@ async def scan_repo(request: RepoRequest):
         return {"error": f"Failed to scan repo: {str(e)}"}
         
     finally:
-        # 5. CLEANUP: Always delete the folder afterwards
         if os.path.exists(folder_name):
             shutil.rmtree(folder_name)
             print(f"🧹 Cleaned up {folder_name}")
@@ -166,7 +173,6 @@ def run_semgrep(filename):
     # 1. Check if the rules file actually exists on the server
     if not os.path.exists("quantum_rules.yaml"):
         print("❌ CRITICAL ERROR: quantum_rules.yaml is MISSING from the server!")
-        # Force an error so we see it in the UI/Logs
         return {"results": [{"check_id": "SERVER_ERROR", "path": filename, "start": {"line": 1}, "extra": {"lines": "CRITICAL: quantum_rules.yaml is missing."}}]}
     else:
         print("✅ quantum_rules.yaml found on server.")
