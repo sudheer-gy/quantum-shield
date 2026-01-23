@@ -1,87 +1,17 @@
 rules:
-  # --------------------------------------------------------
-  # PYTHON RULES
-  # --------------------------------------------------------
-  - id: quantum-vulnerable-rsa
+  - id: quantum-weak-hash-md5
     patterns:
-      - pattern: |
-          RSA.generate(...)
-    message: |
-      [QUANTUM RISK] RSA detected.
-      RSA relies on integer factorization, which will be broken by Shor's Algorithm.
-      Severity: CRITICAL (Harvest Now, Decrypt Later risk).
-      Recommendation: Plan migration to a NIST-approved PQC algorithm.
+      - pattern: hashlib.md5(...)
+    message: "🚨 QUANTUM RISK: MD5 is broken by quantum computers."
     languages: [python]
     severity: ERROR
 
-  - id: quantum-weak-aes
+  - id: standard-hardcoded-password
     patterns:
-      - pattern: |
-          AES.new($KEY, ...)
-      - metavariable-pattern:
-          metavariable: $KEY
-          language: python
-          pattern-regex: b'.{16}'
-    message: |
-      [QUANTUM WARNING] AES-128 detected.
-      Grover's Algorithm reduces AES-128 security to ~64 bits.
-      Recommendation: Upgrade to AES-256 for quantum resistance.
+      - pattern: $X = "..."
+      - pattern-inside: |
+          def connect_to_database():
+            ...
+    message: "⚠️ SECURITY RISK: Hardcoded secret detected."
     languages: [python]
     severity: WARNING
-
-  # --------------------------------------------------------
-  # JAVA RULES (Enterprise)
-  # --------------------------------------------------------
-  - id: quantum-vulnerable-java-rsa
-    patterns:
-      - pattern: |
-          KeyPairGenerator.getInstance("RSA");
-    message: |
-      [QUANTUM RISK] Java RSA detected.
-      Standard Java RSA key generation is vulnerable to Shor's Algorithm.
-      Severity: CRITICAL.
-      Recommendation: Switch to Bouncy Castle PQC Provider.
-    languages: [java]
-    severity: ERROR
-
-  - id: quantum-bouncycastle-weak-provider
-    patterns:
-      - pattern: |
-          Security.addProvider(new BouncyCastleProvider());
-    message: |
-      [QUANTUM NOTE] Standard Bouncy Castle detected.
-      Ensure you are using the *PQC* (Post-Quantum) version of Bouncy Castle.
-      Reference: https://www.bouncycastle.org/java.html
-    languages: [java]
-    severity: INFO
-
-  # --------------------------------------------------------
-  # C++ RULES (Legacy Banking & HFT)
-  # --------------------------------------------------------
-  - id: quantum-vulnerable-cpp-openssl
-    patterns:
-      - pattern: |
-          RSA_generate_key(...);
-    message: |
-      [QUANTUM RISK] C++ OpenSSL RSA detected.
-      Legacy OpenSSL key generation is vulnerable.
-      Severity: CRITICAL.
-      Recommendation: Upgrade to OpenSSL 3.0+ with OQS (Open Quantum Safe) provider.
-    languages: [cpp, c]
-    severity: ERROR
-
-  # --------------------------------------------------------
-  # JAVASCRIPT / NODE.JS RULES (Modern Cloud)
-  # --------------------------------------------------------
-  - id: quantum-vulnerable-node-crypto
-    patterns:
-      - pattern-either:
-          - pattern: crypto.generateKeyPair('rsa', ...)
-          - pattern: crypto.generateKeyPairSync('rsa', ...)
-    message: |
-      [QUANTUM RISK] Node.js RSA detected.
-      Generating RSA keys with the standard 'crypto' library is not quantum-safe.
-      Severity: CRITICAL.
-      Recommendation: Use a quantum-safe library (e.g., liboqs-node).
-    languages: [javascript, typescript]
-    severity: ERROR
