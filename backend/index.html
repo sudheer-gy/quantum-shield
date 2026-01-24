@@ -19,7 +19,7 @@
             --danger: #ef4444; 
             --success: #10b981; 
             --warning: #f59e0b;
-            --ai-color: #8b5cf6; /* Purple for AI */
+            --ai-color: #8b5cf6; 
         }
         
         body { 
@@ -74,7 +74,16 @@
         /* DASHBOARD GRID */
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 25px; align-items: stretch; }
         @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
-        .panel { background: var(--card-bg); border-radius: 16px; padding: 25px; border: 1px solid rgba(255,255,255,0.05); }
+        .panel { background: var(--card-bg); border-radius: 16px; padding: 25px; border: 1px solid rgba(255,255,255,0.05); position: relative;}
+
+        /* CHART & CENTER TEXT */
+        .chart-wrapper { height: 250px; position: relative; display: flex; align-items: center; justify-content: center; }
+        .chart-center-text {
+            position: absolute; text-align: center; pointer-events: none;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+        }
+        .chart-number { font-size: 2.5rem; font-weight: 800; color: white; line-height: 1; }
+        .chart-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; margin-top: 5px; }
 
         /* TERMINAL / SCANNER */
         .terminal-header { 
@@ -96,6 +105,39 @@
         .upload-zone:hover .upload-icon { color: var(--primary); }
         .btn-main { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 15px; }
 
+        /* LIVE TERMINAL LOGS OVERLAY */
+        .scan-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(11, 17, 33, 0.98);
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px;
+            font-family: 'JetBrains Mono', monospace;
+            z-index: 10;
+            border-radius: 12px;
+        }
+        .log-line {
+            color: var(--success); margin-bottom: 8px; opacity: 0; 
+            animation: fadeIn 0.3s forwards; font-size: 0.9rem;
+        }
+        .cursor {
+            display: inline-block; width: 8px; height: 15px; background: var(--success);
+            animation: blink 1s infinite; vertical-align: middle;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        /* RESULTS & AI */
+        .ai-btn { 
+            background: var(--ai-color); color: white; border: none; padding: 8px 12px; 
+            border-radius: 6px; cursor: pointer; margin-top: 12px; font-size: 0.85rem; 
+            display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;
+        }
+        .ai-btn:hover { background: #7c3aed; box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
+        .ai-btn:disabled { opacity: 0.7; cursor: wait; }
+
         /* TABLE */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { text-align: left; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -108,18 +150,7 @@
         .badge-Low { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.2); }
         .action-btn { color: var(--text-muted); cursor: pointer; background: none; border: none; font-size: 1rem; }
         .action-btn:hover { color: var(--primary); }
-
-        /* 🆕 AI BUTTON STYLES */
-        .ai-btn { 
-            background: var(--ai-color); color: white; border: none; padding: 8px 12px; 
-            border-radius: 6px; cursor: pointer; margin-top: 12px; font-size: 0.85rem; 
-            display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;
-        }
-        .ai-btn:hover { background: #7c3aed; box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
-        .ai-btn:disabled { opacity: 0.7; cursor: wait; }
-
-        .loader { display: none; margin: 20px auto; width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
         #resultsArea { display: none; margin-top: 30px; }
     </style>
 </head>
@@ -150,12 +181,24 @@
         </div>
 
         <div class="dashboard-grid">
+            
             <div class="panel">
                 <h3 style="margin-top:0; font-size:1rem;">Threat Distribution</h3>
-                <div style="height: 250px; display:flex; justify-content:center;"><canvas id="riskChart"></canvas></div>
+                <div class="chart-wrapper">
+                    <canvas id="riskChart"></canvas>
+                    <div class="chart-center-text">
+                        <div class="chart-number" id="chart-total">0</div>
+                        <div class="chart-label">Risks</div>
+                    </div>
+                </div>
             </div>
 
-            <div class="panel">
+            <div class="panel" style="position: relative; overflow: hidden;">
+                <div id="terminal-overlay" class="scan-overlay">
+                    <div id="log-container"></div>
+                    <div style="margin-top: 10px;">> <span class="cursor"></span></div>
+                </div>
+
                 <div class="terminal-header">
                     <div class="window-controls"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
                     <div class="terminal-title">scanner_control_v2.4.1</div>
@@ -183,7 +226,6 @@
                         <button class="btn-main" onclick="scanRepo()" style="width:80%;">Start Scan</button>
                     </div>
                 </div>
-                <div class="loader" id="loader"></div>
             </div>
         </div>
 
@@ -216,6 +258,10 @@
         function updateChart(high, low) {
             const ctx = document.getElementById('riskChart').getContext('2d');
             if (riskChart) riskChart.destroy();
+            
+            // Update the Center Number
+            document.getElementById('chart-total').innerText = high + low;
+
             riskChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -233,12 +279,11 @@
         function switchMode(mode) {
             document.getElementById('file-mode').style.display = mode === 'file' ? 'block' : 'none';
             document.getElementById('repo-mode').style.display = mode === 'repo' ? 'block' : 'none';
-            // Toggle styles for buttons (simplified)
             document.getElementById('btn-file').style.background = mode === 'file' ? '#1e293b' : 'transparent';
             document.getElementById('btn-repo').style.background = mode === 'repo' ? '#1e293b' : 'transparent';
         }
 
-        // SCAN LOGIC (WITH AI BUTTON RESTORED)
+        // SCAN LOGIC (WITH TERMINAL ANIMATION)
         let lastFile = null;
         document.getElementById('fileInput').addEventListener('change', async function() {
             if(!this.files[0]) return;
@@ -253,9 +298,28 @@
         }
 
         async function runScan(endpoint, payload, isFile) {
-            document.getElementById('loader').style.display = 'block';
+            // 1. Hide Results & Show Terminal Overlay
             document.getElementById('resultsArea').style.display = 'none';
+            const overlay = document.getElementById('terminal-overlay');
+            const logContainer = document.getElementById('log-container');
+            overlay.style.display = 'flex';
+            logContainer.innerHTML = '';
             
+            // 2. Play Animation
+            const steps = [
+                "Initializing Quantum Shield v2.4...",
+                "Loading semantic analysis engine...",
+                "Parsing Abstract Syntax Tree (AST)...",
+                "Checking NIST Post-Quantum Standards...",
+                "Scanning for hardcoded secrets...",
+                "Analyzing cryptographic primitives..."
+            ];
+
+            for (let i = 0; i < steps.length; i++) {
+                logContainer.innerHTML += `<div class="log-line">> ${steps[i]}</div>`;
+                await new Promise(r => setTimeout(r, 400));
+            }
+
             try {
                 let res;
                 if(isFile) {
@@ -266,11 +330,15 @@
                         method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) 
                     });
                 }
+                
+                logContainer.innerHTML += `<div class="log-line" style="color:#3b82f6; font-weight:bold;">> Scan Complete. Generating Report...</div>`;
+                await new Promise(r => setTimeout(r, 600));
+
                 const data = await res.json();
-                document.getElementById('loader').style.display = 'none';
+                overlay.style.display = 'none'; // Hide overlay
                 document.getElementById('resultsArea').style.display = 'block';
                 
-                // RENDER RESULTS
+                // Render Findings
                 const list = document.getElementById('findingsList');
                 list.innerHTML = "";
                 if((data.results || []).length === 0) {
@@ -288,13 +356,10 @@
                                     </div>
                                     <span class="badge badge-High">CRITICAL</span>
                                 </div>
-                                
-                                <pre style="background:rgba(0,0,0,0.3); padding:15px; border-radius:6px; font-family:'JetBrains Mono'; font-size:0.85rem; overflow-x:auto; margin-top:15px; color:#e2e8f0;">${codeSnippet}</pre>
-
+                                <pre style="background:rgba(0,0,0,0.3); padding:15px; border-radius:6px; margin-top:15px; font-family:'JetBrains Mono'; font-size:0.85rem; overflow-x:auto; color:#e2e8f0;">${codeSnippet}</pre>
                                 <button id="fix-btn-${index}" class="ai-btn" onclick="fixCode(${index})">
                                     <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Fix with AI
                                 </button>
-                                
                                 <div id="fix-result-${index}" style="display:none; margin-top:15px;"></div>
                                 <textarea id="raw-code-${index}" style="display:none">${codeSnippet}</textarea>
                                 <textarea id="raw-issue-${index}" style="display:none">${vuln.check_id}</textarea>
@@ -305,20 +370,18 @@
                 loadHistory(); 
             } catch(e) {
                 alert("Error scanning");
-                document.getElementById('loader').style.display = 'none';
+                overlay.style.display = 'none';
             }
         }
 
-        // 🆕 AI FIX FUNCTION (Restored)
+        // AI FIX
         async function fixCode(index) {
             const btn = document.getElementById(`fix-btn-${index}`);
             const resultBox = document.getElementById(`fix-result-${index}`);
             const code = document.getElementById(`raw-code-${index}`).value;
             const issue = document.getElementById(`raw-issue-${index}`).value;
-            
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> AI Thinking...`;
             btn.disabled = true;
-            
             try {
                 const res = await fetch(`${API_BASE_URL}/fix`, {
                     method: "POST", headers: {"Content-Type": "application/json"},
@@ -333,9 +396,7 @@
                     </div>
                 `;
                 btn.innerHTML = `<i class="fa-solid fa-check"></i> Done`;
-            } catch(e) {
-                btn.innerText = "❌ Error";
-            }
+            } catch(e) { btn.innerText = "❌ Error"; }
         }
 
         // HISTORY & REPORT
@@ -349,9 +410,15 @@
                 data.forEach(scan => {
                     if(scan.risk_level === 'High') high++; else low++;
                     const dateStr = new Date(scan.created_at).toLocaleDateString();
+                    // Choose icon based on file extension
+                    let iconClass = "fa-regular fa-file-code";
+                    if(scan.filename.endsWith('.py')) iconClass = "fa-brands fa-python";
+                    else if(scan.filename.endsWith('.js')) iconClass = "fa-brands fa-js";
+                    else if(scan.filename.endsWith('.java')) iconClass = "fa-brands fa-java";
+
                     tbody.innerHTML += `
                         <tr>
-                            <td><div class="file-row"><i class="fa-regular fa-file-code" style="color:#64748b"></i><span class="filename">${scan.filename.substring(0,30)}</span></div></td>
+                            <td><div class="file-row"><i class="${iconClass}" style="color:#64748b"></i><span class="filename">${scan.filename.substring(0,30)}</span></div></td>
                             <td style="color:var(--text-muted); font-size:0.85rem;">${dateStr}</td>
                             <td style="font-weight:bold; color:${scan.vulnerability_count > 0 ? '#ef4444' : '#10b981'}">${scan.vulnerability_count}</td>
                             <td><span class="badge badge-${scan.risk_level}">${scan.risk_level}</span></td>
