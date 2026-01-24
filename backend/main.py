@@ -27,9 +27,21 @@ class FixRequest(BaseModel):
 class RepoRequest(BaseModel):
     repo_url: str
 
+# ---------------------------------------------------------
+# 🏠 HOME ROUTE (Restores the Dashboard UI)
+# ---------------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 def home():
-    return "<h1>Quantum Shield Backend is Ready 🛡️</h1>"
+    # Try to load the dashboard UI
+    if os.path.exists("index.html"):
+        with open("index.html", "r", encoding="utf-8") as f:
+            return f.read()
+    # Fallback if running from a different folder
+    elif os.path.exists("backend/index.html"):
+        with open("backend/index.html", "r", encoding="utf-8") as f:
+            return f.read()
+    else:
+        return "<h1>Quantum Shield Backend is Ready 🛡️ (index.html not found)</h1>"
 
 # ---------------------------------------------------------
 # 1. MAIN SCANNER (Auto-Generates Rules)
