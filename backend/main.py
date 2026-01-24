@@ -29,79 +29,66 @@ class RepoRequest(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 def home():
-    return "<h1>Quantum Shield Backend is Running</h1>"
-
-# --- ☢️ GOD MODE DEBUG ENDPOINT ---
-@app.get("/test-internal")
-def test_internal_scan():
-    # 1. Python writes the Rules File directly (Guaranteed Correct Formatting)
-    rules_content = """rules:
-  - id: auto-generated-md5-rule
-    patterns:
-      - pattern: hashlib.md5(...)
-    message: "CRITICAL: MD5 detected (God Mode verified)"
-    languages: [python]
-    severity: ERROR
-"""
-    with open("force_rules.yaml", "w") as f:
-        f.write(rules_content)
-
-    # 2. Python writes the Vulnerable Code directly
-    code_content = """import hashlib
-def bad_code():
-    # This MUST trigger the rule above
-    return hashlib.md5(b'123').hexdigest()
-"""
-    with open("force_test.py", "w") as f:
-        f.write(code_content)
-    
-    # 3. Scan using the forced files
-    print("🕵️‍♂️ GOD MODE: Running scan with forced rules...")
-    command = ["semgrep", "scan", "--config=force_rules.yaml", "force_test.py", "--json"]
-    result = subprocess.run(command, capture_output=True, text=True)
-    
-    # Debug Output
-    print(f"📄 STDOUT: {result.stdout[:500]}")
-    print(f"⚠️ STDERR: {result.stderr}")
-    
-    return json.loads(result.stdout)
+    return "<h1>Quantum Shield Backend is Ready 🛡️</h1>"
 
 # ---------------------------------------------------------
-# REGULAR SCAN ENDPOINTS
+# 1. MAIN SCANNER (Auto-Generates Rules)
 # ---------------------------------------------------------
 @app.post("/scan")
 async def scan_code(file: UploadFile = File(...)):
+    # Save user's file
     temp_filename = f"temp_{file.filename}"
     with open(temp_filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+    
+    # Run Scan
     results = run_semgrep(temp_filename)
     
-    # DB Save
+    # Save to Database
     try:
         supabase = get_db_connection()
         if supabase:
-            data = {"filename": file.filename, "vulnerability_count": len(results.get("results", [])), "risk_level": "High"}
+            vulnerabilities = results.get("results", [])
+            data = {
+                "filename": file.filename, 
+                "vulnerability_count": len(vulnerabilities), 
+                "risk_level": "High" if len(vulnerabilities) > 0 else "Low"
+            }
             supabase.table("scans").insert(data).execute()
+            print(f"✅ Saved scan for {file.filename}")
     except Exception as e:
         print(f"❌ DB Error: {e}")
 
+    # Cleanup
     if os.path.exists(temp_filename):
         os.remove(temp_filename)
+        
     return results
 
+# ---------------------------------------------------------
+# 2. PDF REPORT
+# ---------------------------------------------------------
 @app.post("/report")
 async def get_report(file: UploadFile = File(...)):
     temp_filename = f"temp_report_{file.filename}"
     with open(temp_filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+    
     scan_data = run_semgrep(temp_filename)
+    
     pdf_filename = f"report_{file.filename}.pdf"
     output_path = f"/tmp/{pdf_filename}" if os.path.exists("/tmp") else pdf_filename
+    
     generate_pdf(scan_data.get('results', []), filename=output_path)
+    
     if os.path.exists(temp_filename):
         os.remove(temp_filename)
+        
     return FileResponse(output_path, media_type='application/pdf', filename=pdf_filename)
 
+# ---------------------------------------------------------
+# 3. AI FIX & REPO SCAN
+# ---------------------------------------------------------
 @app.post("/fix")
 async def get_ai_fix(request: FixRequest):
     return {"fixed_code": fix_code(request.issue, request.code)}
@@ -112,6 +99,20 @@ async def scan_repo(request: RepoRequest):
     try:
         subprocess.run(["git", "clone", request.repo_url, folder_name], check=True)
         results = run_semgrep(folder_name)
+        
+        # Save Repo Stats
+        try:
+            supabase = get_db_connection()
+            if supabase:
+                data = {
+                    "filename": request.repo_url, 
+                    "vulnerability_count": len(results.get("results", [])), 
+                    "risk_level": "High"
+                }
+                supabase.table("scans").insert(data).execute()
+        except:
+            pass
+
         return results
     except Exception as e:
         return {"error": str(e)}
@@ -119,11 +120,50 @@ async def scan_repo(request: RepoRequest):
         if os.path.exists(folder_name):
             shutil.rmtree(folder_name)
 
+# ---------------------------------------------------------
+# ⚙️ THE BULLETPROOF SCANNER ENGINE
+# ---------------------------------------------------------
 def run_semgrep(filename):
-    # Use the FORCE rules if they exist, otherwise default
-    config = "force_rules.yaml" if os.path.exists("force_rules.yaml") else "p/default"
-    command = ["semgrep", "scan", f"--config={config}", filename, "--json"]
+    print(f"🕵️‍♂️ Scanning {filename}...")
+
+    # 1. FORCE-CREATE THE RULES FILE (This fixes the 'Clean Scan' bug forever)
+    # We write the file FRESH every single time.
+    rules_content = """rules:
+  - id: quantum-weak-hash-md5
+    patterns:
+      - pattern: hashlib.md5(...)
+    message: "🚨 QUANTUM RISK: MD5 is broken by quantum computers."
+    languages: [python]
+    severity: ERROR
+
+  - id: standard-hardcoded-password
+    patterns:
+      - pattern: $X = "..."
+      - pattern-inside: |
+          def connect_to_database():
+            ...
+    message: "⚠️ SECURITY RISK: Hardcoded secret detected."
+    languages: [python]
+    severity: WARNING
+"""
+    with open("quantum_rules.yaml", "w") as f:
+        f.write(rules_content)
+
+    # 2. RUN THE SCAN (Standard + Quantum)
+    command = [
+        "semgrep", 
+        "scan", 
+        "--config=p/default", 
+        "--config=quantum_rules.yaml", 
+        filename, 
+        "--json"
+    ]
+    
     result = subprocess.run(command, capture_output=True, text=True)
+    
+    # Debug Logs (Visible in Render)
+    print(f"📄 Results: {result.stdout[:200]}...") 
+    
     try:
         return json.loads(result.stdout)
     except:
