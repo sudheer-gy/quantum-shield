@@ -10,7 +10,7 @@
     
     <style>
         :root { 
-            --bg-dark: #0b1121; /* Darker, richer navy */
+            --bg-dark: #0b1121; 
             --card-bg: #151e32; 
             --primary: #3b82f6; 
             --accent-glow: rgba(59, 130, 246, 0.15);
@@ -19,103 +19,64 @@
             --danger: #ef4444; 
             --success: #10b981; 
             --warning: #f59e0b;
+            --ai-color: #8b5cf6; /* Purple for AI */
         }
         
         body { 
             font-family: 'Inter', sans-serif; 
             background-color: var(--bg-dark); 
             color: var(--text-main); 
-            margin: 0; 
-            padding: 0; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
+            margin: 0; padding: 0; 
+            display: flex; flex-direction: column; align-items: center; 
             min-height: 100vh;
         }
         
-        /* --- 1. GLASS HEADER --- */
+        /* HEADER */
         .navbar { 
-            width: 100%; 
-            max-width: 1200px;
-            padding: 20px 0; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            margin-bottom: 40px;
+            width: 100%; max-width: 1200px; padding: 20px 0; 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 40px;
         }
         .brand { display: flex; align-items: center; gap: 12px; }
         .logo-icon { font-size: 1.5rem; color: var(--primary); }
         .brand h1 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.5px; }
-        .brand span { color: var(--text-muted); font-weight: 400; margin-left: 8px; font-size: 0.9rem; }
         
         .status-badge { 
-            background: rgba(16, 185, 129, 0.1); 
-            color: var(--success); 
-            padding: 6px 12px; 
-            border-radius: 20px; 
-            font-size: 0.85rem; 
-            font-weight: 600; 
-            display: flex; 
-            align-items: center; 
-            gap: 8px;
-            border: 1px solid rgba(16, 185, 129, 0.2);
+            background: rgba(16, 185, 129, 0.1); color: var(--success); 
+            padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; 
+            display: flex; align-items: center; gap: 8px; border: 1px solid rgba(16, 185, 129, 0.2);
         }
         .status-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 8px var(--success); }
 
         .container { max-width: 1200px; width: 95%; display: flex; flex-direction: column; gap: 25px; padding-bottom: 50px; }
         
-        /* --- 2. METRIC CARDS (The Glow Effect) --- */
+        /* METRICS */
         .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-        
         .stat-card { 
-            background: var(--card-bg); 
-            padding: 25px; 
-            border-radius: 16px; 
-            border: 1px solid rgba(255,255,255,0.05);
-            position: relative;
-            overflow: hidden;
+            background: var(--card-bg); padding: 25px; border-radius: 16px; 
+            border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden;
             transition: transform 0.2s;
         }
         .stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.1); }
-        
-        /* Subtle colored glow at top of cards */
         .stat-card::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--card-color), transparent);
-            opacity: 0.5;
+            background: linear-gradient(90deg, transparent, var(--card-color), transparent); opacity: 0.5;
         }
-        
         .stat-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
         .stat-label { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
         .icon-box { 
-            width: 40px; height: 40px; border-radius: 10px; 
-            display: flex; align-items: center; justify-content: center; 
+            width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; 
             background: rgba(255,255,255,0.03); color: var(--card-color); font-size: 1.2rem;
         }
         .stat-value { font-size: 2.2rem; font-weight: 800; color: white; line-height: 1; margin-bottom: 5px; }
         .stat-trend { font-size: 0.85rem; color: var(--card-color); font-weight: 500; }
 
-        /* --- 3. THE SPLIT LAYOUT (Chart Left, Scanner Right) --- */
-        .dashboard-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1.5fr; /* Chart takes less space, Scanner takes more */
-            gap: 25px; 
-            align-items: stretch;
-        }
+        /* DASHBOARD GRID */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 25px; align-items: stretch; }
         @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+        .panel { background: var(--card-bg); border-radius: 16px; padding: 25px; border: 1px solid rgba(255,255,255,0.05); }
 
-        .panel { 
-            background: var(--card-bg); 
-            border-radius: 16px; 
-            padding: 25px; 
-            border: 1px solid rgba(255,255,255,0.05); 
-        }
-
-        /* Chart Section */
-        .chart-wrapper { height: 250px; position: relative; display: flex; align-items: center; justify-content: center; }
-
-        /* TERMINAL SCANNER (The "Lovable" Look) */
+        /* TERMINAL / SCANNER */
         .terminal-header { 
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; 
             border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px;
@@ -126,49 +87,39 @@
         .terminal-title { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted); }
 
         .upload-zone {
-            border: 2px dashed rgba(255,255,255,0.1);
-            border-radius: 12px;
-            height: 200px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: rgba(0,0,0,0.2);
+            border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px; height: 200px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer;
+            transition: all 0.3s ease; background: rgba(0,0,0,0.2);
         }
-        .upload-zone:hover { 
-            border-color: var(--primary); 
-            background: rgba(59, 130, 246, 0.05); 
-            box-shadow: 0 0 20px var(--accent-glow);
-        }
+        .upload-zone:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.05); box-shadow: 0 0 20px var(--accent-glow); }
         .upload-icon { font-size: 2.5rem; color: var(--text-muted); margin-bottom: 15px; transition: color 0.3s; }
         .upload-zone:hover .upload-icon { color: var(--primary); }
-        
         .btn-main { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 15px; }
 
-        /* --- 4. DATA TABLE (Sleek) --- */
+        /* TABLE */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { text-align: left; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-main); font-size: 0.9rem; }
         tr:last-child td { border-bottom: none; }
-        
         .file-row { display: flex; align-items: center; gap: 10px; }
-        .file-icon { color: var(--text-muted); }
         .filename { font-family: 'JetBrains Mono', monospace; }
-        
         .badge { padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         .badge-High { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.2); }
         .badge-Low { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.2); }
-        
-        .action-btn { color: var(--text-muted); cursor: pointer; transition: color 0.2s; background: none; border: none; font-size: 1rem; }
+        .action-btn { color: var(--text-muted); cursor: pointer; background: none; border: none; font-size: 1rem; }
         .action-btn:hover { color: var(--primary); }
 
-        /* --- UTILS --- */
+        /* 🆕 AI BUTTON STYLES */
+        .ai-btn { 
+            background: var(--ai-color); color: white; border: none; padding: 8px 12px; 
+            border-radius: 6px; cursor: pointer; margin-top: 12px; font-size: 0.85rem; 
+            display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;
+        }
+        .ai-btn:hover { background: #7c3aed; box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
+        .ai-btn:disabled { opacity: 0.7; cursor: wait; }
+
         .loader { display: none; margin: 20px auto; width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        
-        /* Hide unwanted elements initially */
         #resultsArea { display: none; margin-top: 30px; }
     </style>
 </head>
@@ -177,78 +128,50 @@
     <nav class="navbar">
         <div class="brand">
             <i class="fa-solid fa-shield-halved logo-icon"></i>
-            <div>
-                <h1>Quantum Shield</h1>
-                </div>
+            <h1>Quantum Shield</h1>
         </div>
-        <div class="status-badge">
-            <div class="status-dot"></div>
-            System Operational
-        </div>
+        <div class="status-badge"><div class="status-dot"></div> System Operational</div>
     </nav>
 
     <div class="container">
-
         <div class="stats-row">
             <div class="stat-card" style="--card-color: #3b82f6;">
-                <div class="stat-header">
-                    <div class="stat-label">Total Scans</div>
-                    <div class="icon-box"><i class="fa-solid fa-crosshairs"></i></div>
-                </div>
-                <div class="stat-value" id="total-scans">0</div>
-                <div class="stat-trend">↑ 12% from last week</div>
+                <div class="stat-header"><div class="stat-label">Total Scans</div><div class="icon-box"><i class="fa-solid fa-crosshairs"></i></div></div>
+                <div class="stat-value" id="total-scans">0</div><div class="stat-trend">↑ 12% from last week</div>
             </div>
-
             <div class="stat-card" style="--card-color: #ef4444;">
-                <div class="stat-header">
-                    <div class="stat-label">Critical Threats</div>
-                    <div class="icon-box"><i class="fa-solid fa-bug"></i></div>
-                </div>
-                <div class="stat-value" id="high-risks">0</div>
-                <div class="stat-trend">↓ 5% risk reduction</div>
+                <div class="stat-header"><div class="stat-label">Critical Threats</div><div class="icon-box"><i class="fa-solid fa-bug"></i></div></div>
+                <div class="stat-value" id="high-risks">0</div><div class="stat-trend">↓ 5% risk reduction</div>
             </div>
-
             <div class="stat-card" style="--card-color: #10b981;">
-                <div class="stat-header">
-                    <div class="stat-label">Secure Files</div>
-                    <div class="icon-box"><i class="fa-solid fa-shield-check"></i></div>
-                </div>
-                <div class="stat-value" id="secure-files">0</div>
-                <div class="stat-trend">100% compliance</div>
+                <div class="stat-header"><div class="stat-label">Secure Files</div><div class="icon-box"><i class="fa-solid fa-shield-check"></i></div></div>
+                <div class="stat-value" id="secure-files">0</div><div class="stat-trend">100% compliance</div>
             </div>
         </div>
 
         <div class="dashboard-grid">
-            
             <div class="panel">
                 <h3 style="margin-top:0; font-size:1rem;">Threat Distribution</h3>
-                <div class="chart-wrapper">
-                    <canvas id="riskChart"></canvas>
-                </div>
+                <div style="height: 250px; display:flex; justify-content:center;"><canvas id="riskChart"></canvas></div>
             </div>
 
             <div class="panel">
                 <div class="terminal-header">
-                    <div class="window-controls">
-                        <div class="dot red"></div>
-                        <div class="dot yellow"></div>
-                        <div class="dot green"></div>
-                    </div>
+                    <div class="window-controls"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
                     <div class="terminal-title">scanner_control_v2.4.1</div>
                     <div style="font-size: 0.8rem; color: var(--success); font-weight: bold;">⚡ READY</div>
                 </div>
-
+                
                 <div style="display:flex; gap:10px; margin-bottom:15px;">
                     <button id="btn-file" class="btn-main" style="background:#1e293b; border:1px solid #334155; flex:1;" onclick="switchMode('file')">File Upload</button>
                     <button id="btn-repo" class="btn-main" style="background:transparent; border:1px solid #334155; color:#94a3b8; flex:1;" onclick="switchMode('repo')">GitHub Repo</button>
                 </div>
 
-                <div id="file-mode" style="display:block;">
+                <div id="file-mode">
                     <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
                         <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
                         <h4 style="margin:0;">Drop files to scan</h4>
                         <p style="color: var(--text-muted); font-size: 0.85rem; margin-top:5px;">or click to browse system</p>
-                        <p style="color: var(--text-muted); font-size: 0.75rem; opacity: 0.5;">.py, .js, .java, .cpp</p>
                         <input type="file" id="fileInput" hidden>
                     </div>
                 </div>
@@ -256,12 +179,10 @@
                 <div id="repo-mode" style="display:none;">
                     <div class="upload-zone" style="border-style:solid;">
                         <i class="fa-brands fa-github upload-icon"></i>
-                        <input type="text" id="repoUrl" placeholder="https://github.com/username/project" 
-                               style="background:rgba(0,0,0,0.3); border:1px solid #334155; color:white; padding:10px; width:80%; border-radius:6px; outline:none;">
+                        <input type="text" id="repoUrl" placeholder="https://github.com/username/project" style="background:rgba(0,0,0,0.3); border:1px solid #334155; color:white; padding:10px; width:80%; border-radius:6px; outline:none;">
                         <button class="btn-main" onclick="scanRepo()" style="width:80%;">Start Scan</button>
                     </div>
                 </div>
-                
                 <div class="loader" id="loader"></div>
             </div>
         </div>
@@ -270,9 +191,7 @@
             <div class="panel" style="border-left: 4px solid var(--primary);">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h3 style="margin:0;">🔍 Audit Findings</h3>
-                    <button onclick="downloadReport()" style="background:var(--danger); color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer;">
-                        <i class="fa-solid fa-file-pdf"></i> Download Report
-                    </button>
+                    <button onclick="downloadReport()" style="background:var(--danger); color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-file-pdf"></i> Report</button>
                 </div>
                 <div id="findingsList" style="margin-top:20px;"></div>
             </div>
@@ -282,31 +201,21 @@
             <h3 style="margin-top:0; margin-bottom:15px; font-size:1rem;">Recent Scan History</h3>
             <table>
                 <thead>
-                    <tr>
-                        <th>Filename</th>
-                        <th>Date</th>
-                        <th>Vulnerabilities</th>
-                        <th>Risk Level</th>
-                        <th style="text-align:right;">Actions</th>
-                    </tr>
+                    <tr><th>Filename</th><th>Date</th><th>Vulnerabilities</th><th>Risk Level</th><th></th></tr>
                 </thead>
-                <tbody id="history-body">
-                    </tbody>
+                <tbody id="history-body"></tbody>
             </table>
         </div>
-
     </div>
 
     <script>
         const API_BASE_URL = "https://quantum-shield.onrender.com"; 
 
-        // --- CHART SETUP ---
+        // CHART
         let riskChart = null;
         function updateChart(high, low) {
             const ctx = document.getElementById('riskChart').getContext('2d');
             if (riskChart) riskChart.destroy();
-            
-            // Lovable Colors: Red/Orange/Purple/Blue - Simplified to Red/Green for now
             riskChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -315,46 +224,26 @@
                         data: [high, low],
                         backgroundColor: ['#ef4444', '#3b82f6'],
                         borderWidth: 0,
-                        hoverOffset: 4
                     }]
                 },
-                options: {
-                    cutout: '75%', // Thinner donut like Lovable
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false } // Hide default legend for cleaner look
-                    }
-                }
+                options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }
 
-        // --- UI SWITCHING ---
         function switchMode(mode) {
-            if(mode === 'file') {
-                document.getElementById('file-mode').style.display = 'block';
-                document.getElementById('repo-mode').style.display = 'none';
-                document.getElementById('btn-file').style.background = '#1e293b';
-                document.getElementById('btn-file').style.color = 'white';
-                document.getElementById('btn-repo').style.background = 'transparent';
-                document.getElementById('btn-repo').style.color = '#94a3b8';
-            } else {
-                document.getElementById('file-mode').style.display = 'none';
-                document.getElementById('repo-mode').style.display = 'block';
-                document.getElementById('btn-repo').style.background = '#1e293b';
-                document.getElementById('btn-repo').style.color = 'white';
-                document.getElementById('btn-file').style.background = 'transparent';
-                document.getElementById('btn-file').style.color = '#94a3b8';
-            }
+            document.getElementById('file-mode').style.display = mode === 'file' ? 'block' : 'none';
+            document.getElementById('repo-mode').style.display = mode === 'repo' ? 'block' : 'none';
+            // Toggle styles for buttons (simplified)
+            document.getElementById('btn-file').style.background = mode === 'file' ? '#1e293b' : 'transparent';
+            document.getElementById('btn-repo').style.background = mode === 'repo' ? '#1e293b' : 'transparent';
         }
 
-        // --- SCAN LOGIC ---
+        // SCAN LOGIC (WITH AI BUTTON RESTORED)
         let lastFile = null;
         document.getElementById('fileInput').addEventListener('change', async function() {
-            const file = this.files[0];
-            if(!file) return;
-            lastFile = file;
-            runScan('/scan', { file: file }, true);
+            if(!this.files[0]) return;
+            lastFile = this.files[0];
+            runScan('/scan', { file: this.files[0] }, true);
         });
 
         function scanRepo() {
@@ -381,73 +270,101 @@
                 document.getElementById('loader').style.display = 'none';
                 document.getElementById('resultsArea').style.display = 'block';
                 
-                // Render Findings
+                // RENDER RESULTS
                 const list = document.getElementById('findingsList');
                 list.innerHTML = "";
                 if((data.results || []).length === 0) {
                     list.innerHTML = `<p style="color:var(--success)">✅ System Secure. No threats detected.</p>`;
                 } else {
-                    data.results.forEach(vuln => {
+                    data.results.forEach((vuln, index) => {
+                        const codeSnippet = vuln.extra.lines ? vuln.extra.lines.trim() : "Code unavailable";
+                        
                         list.innerHTML += `
-                            <div style="background:rgba(0,0,0,0.2); padding:15px; margin-bottom:10px; border-radius:8px; border-left:3px solid var(--danger);">
-                                <strong style="color:#fca5a5">${vuln.check_id}</strong>
-                                <div style="font-size:0.85rem; color:#94a3b8; margin-top:5px;">${vuln.path} : Line ${vuln.start.line}</div>
+                            <div style="background:rgba(0,0,0,0.2); padding:20px; margin-bottom:15px; border-radius:8px; border-left:3px solid var(--danger);">
+                                <div style="display:flex; justify-content:space-between; align-items:start;">
+                                    <div>
+                                        <strong style="color:#fca5a5; font-size:1.1rem;">${vuln.check_id}</strong>
+                                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:5px;">File: ${vuln.path} | Line ${vuln.start.line}</div>
+                                    </div>
+                                    <span class="badge badge-High">CRITICAL</span>
+                                </div>
+                                
+                                <pre style="background:rgba(0,0,0,0.3); padding:15px; border-radius:6px; font-family:'JetBrains Mono'; font-size:0.85rem; overflow-x:auto; margin-top:15px; color:#e2e8f0;">${codeSnippet}</pre>
+
+                                <button id="fix-btn-${index}" class="ai-btn" onclick="fixCode(${index})">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Fix with AI
+                                </button>
+                                
+                                <div id="fix-result-${index}" style="display:none; margin-top:15px;"></div>
+                                <textarea id="raw-code-${index}" style="display:none">${codeSnippet}</textarea>
+                                <textarea id="raw-issue-${index}" style="display:none">${vuln.check_id}</textarea>
                             </div>
                         `;
                     });
                 }
-                loadHistory(); // Refresh table & stats
+                loadHistory(); 
             } catch(e) {
                 alert("Error scanning");
                 document.getElementById('loader').style.display = 'none';
             }
         }
 
-        // --- HISTORY & STATS ---
+        // 🆕 AI FIX FUNCTION (Restored)
+        async function fixCode(index) {
+            const btn = document.getElementById(`fix-btn-${index}`);
+            const resultBox = document.getElementById(`fix-result-${index}`);
+            const code = document.getElementById(`raw-code-${index}`).value;
+            const issue = document.getElementById(`raw-issue-${index}`).value;
+            
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> AI Thinking...`;
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/fix`, {
+                    method: "POST", headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ code: code, issue: issue })
+                });
+                const data = await res.json();
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = `
+                    <div style="border-top:1px solid rgba(255,255,255,0.1); margin-top:15px; padding-top:15px;">
+                        <strong style="color:#4ade80; font-size:0.9rem;">✅ AI Suggested Fix:</strong>
+                        <pre style="background:rgba(16, 185, 129, 0.1); color:#86efac; padding:15px; border-radius:6px; margin-top:10px; font-family:'JetBrains Mono'; font-size:0.85rem; overflow-x:auto; border:1px solid rgba(16, 185, 129, 0.2);">${data.fixed_code}</pre>
+                    </div>
+                `;
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> Done`;
+            } catch(e) {
+                btn.innerText = "❌ Error";
+            }
+        }
+
+        // HISTORY & REPORT
         async function loadHistory() {
             try {
                 const res = await fetch(`${API_BASE_URL}/history`);
                 const data = await res.json();
                 const tbody = document.getElementById('history-body');
                 tbody.innerHTML = "";
-                
                 let high = 0, low = 0;
-
                 data.forEach(scan => {
                     if(scan.risk_level === 'High') high++; else low++;
-                    
-                    // Format date nicely
-                    const dateObj = new Date(scan.created_at);
-                    const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
+                    const dateStr = new Date(scan.created_at).toLocaleDateString();
                     tbody.innerHTML += `
                         <tr>
-                            <td>
-                                <div class="file-row">
-                                    <i class="fa-regular fa-file-code file-icon"></i>
-                                    <span class="filename">${scan.filename.substring(0, 40)}</span>
-                                </div>
-                            </td>
+                            <td><div class="file-row"><i class="fa-regular fa-file-code" style="color:#64748b"></i><span class="filename">${scan.filename.substring(0,30)}</span></div></td>
                             <td style="color:var(--text-muted); font-size:0.85rem;">${dateStr}</td>
                             <td style="font-weight:bold; color:${scan.vulnerability_count > 0 ? '#ef4444' : '#10b981'}">${scan.vulnerability_count}</td>
                             <td><span class="badge badge-${scan.risk_level}">${scan.risk_level}</span></td>
-                            <td style="text-align:right;">
-                                <button class="action-btn"><i class="fa-solid fa-download"></i></button>
-                            </td>
+                            <td><button class="action-btn"><i class="fa-solid fa-download"></i></button></td>
                         </tr>
                     `;
                 });
-
-                // Update Stats
-                document.getElementById('total-scans').innerText = data.length.toLocaleString();
+                document.getElementById('total-scans').innerText = data.length;
                 document.getElementById('high-risks').innerText = high;
                 document.getElementById('secure-files').innerText = low;
                 updateChart(high, low);
-
             } catch(e) { console.error(e); }
         }
-
-        // PDF Report (Simple Stub)
         async function downloadReport() {
             if(!lastFile) return alert("Scan a file first");
             const fd = new FormData(); fd.append("file", lastFile);
@@ -456,7 +373,6 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = "report.pdf"; a.click();
         }
-
         window.onload = loadHistory;
     </script>
 </body>
