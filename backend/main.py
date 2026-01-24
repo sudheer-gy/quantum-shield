@@ -36,12 +36,27 @@ def home():
     if os.path.exists("index.html"):
         with open("index.html", "r", encoding="utf-8") as f:
             return f.read()
-    # Fallback if running from a different folder
     elif os.path.exists("backend/index.html"):
         with open("backend/index.html", "r", encoding="utf-8") as f:
             return f.read()
     else:
         return "<h1>Quantum Shield Backend is Ready 🛡️ (index.html not found)</h1>"
+
+# ---------------------------------------------------------
+# 📊 HISTORY ROUTE (Connects to Supabase) - NEW!
+# ---------------------------------------------------------
+@app.get("/history")
+def get_history():
+    try:
+        supabase = get_db_connection()
+        if supabase:
+            # Fetch last 10 scans, newest first
+            response = supabase.table("scans").select("*").order("created_at", desc=True).limit(10).execute()
+            return response.data
+        return []
+    except Exception as e:
+        print(f"❌ History Error: {e}")
+        return []
 
 # ---------------------------------------------------------
 # 1. MAIN SCANNER (Auto-Generates Rules)
@@ -138,8 +153,7 @@ async def scan_repo(request: RepoRequest):
 def run_semgrep(filename):
     print(f"🕵️‍♂️ Scanning {filename}...")
 
-    # 1. FORCE-CREATE THE RULES FILE (This fixes the 'Clean Scan' bug forever)
-    # We write the file FRESH every single time.
+    # 1. FORCE-CREATE THE RULES FILE
     rules_content = """rules:
   - id: quantum-weak-hash-md5
     patterns:
@@ -161,7 +175,7 @@ def run_semgrep(filename):
     with open("quantum_rules.yaml", "w") as f:
         f.write(rules_content)
 
-    # 2. RUN THE SCAN (Standard + Quantum)
+    # 2. RUN THE SCAN
     command = [
         "semgrep", 
         "scan", 
@@ -172,9 +186,6 @@ def run_semgrep(filename):
     ]
     
     result = subprocess.run(command, capture_output=True, text=True)
-    
-    # Debug Logs (Visible in Render)
-    print(f"📄 Results: {result.stdout[:200]}...") 
     
     try:
         return json.loads(result.stdout)

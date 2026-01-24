@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantum-Shield Enterprise</title>
     <style>
-        :root { --primary: #3b82f6; --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; }
+        :root { --primary: #3b82f6; --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --danger: #ef4444; --success: #22c55e; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
         .navbar { width: 100%; background: var(--card); padding: 20px; text-align: center; border-bottom: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
         .navbar h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
         
-        .container { max-width: 800px; width: 100%; padding: 40px 20px; }
+        .container { max-width: 900px; width: 100%; padding: 40px 20px; }
         
         /* Toggle Switch */
         .mode-switch { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
@@ -59,6 +59,16 @@
         
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; display: none; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* HISTORY TABLE STYLES */
+        .history-section { margin-top: 50px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: var(--card); border-radius: 8px; overflow: hidden; }
+        th, td { text-align: left; padding: 15px; border-bottom: 1px solid #334155; }
+        th { background: rgba(0,0,0,0.2); color: #94a3b8; font-weight: 600; }
+        tr:last-child td { border-bottom: none; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .badge-High { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        .badge-Low { background: rgba(34, 197, 94, 0.2); color: #86efac; }
     </style>
 </head>
 <body>
@@ -98,12 +108,26 @@
             <h2 style="border-bottom: 1px solid #334155; padding-bottom: 10px;">Audit Results</h2>
             <div id="findingsList" style="margin-top: 20px;"></div>
         </div>
+
+        <div class="history-section">
+            <h2 style="border-bottom: 1px solid #334155; padding-bottom: 10px;">📜 Recent Scan History</h2>
+            <table id="history-table">
+                <thead>
+                    <tr>
+                        <th>Filename / Repo</th>
+                        <th>Vulnerabilities</th>
+                        <th>Risk Level</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body">
+                    <tr><td colspan="4" style="text-align:center; color: #94a3b8;">Loading history...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
-        // ==========================================
-        // 👇 YOUR LIVE RENDER URL (Already Updated)
-        // ==========================================
         const API_BASE_URL = "https://quantum-shield.onrender.com"; 
 
         const loader = document.getElementById('loader');
@@ -162,6 +186,7 @@
                 loader.style.display = 'none';
                 resultsArea.style.display = 'block';
                 displayResults(data.results || []);
+                loadHistory(); // Refresh history immediately after scan!
 
             } catch (error) {
                 console.error(error);
@@ -179,7 +204,7 @@
                 const isCritical = !issue.check_id.toLowerCase().includes('aes');
                 const severity = isCritical ? 'critical' : 'warning';
                 const badge = isCritical ? '🚨 CRITICAL' : '⚠️ WARNING';
-                const codeSnippet = issue.extra.lines.trim();
+                const codeSnippet = issue.extra.lines ? issue.extra.lines.trim() : "Code not available";
 
                 const btnId = `fix-btn-${index}`;
                 const resultId = `fix-result-${index}`;
@@ -203,7 +228,7 @@
             });
         }
 
-        // AI Fix Function (Reused from previous version)
+        // --- AI Fix Function ---
         async function fixCode(index) {
             const btn = document.getElementById(`fix-btn-${index}`);
             const resultBox = document.getElementById(`fix-result-${index}`);
@@ -233,6 +258,44 @@
                 btn.innerText = "❌ Error";
             }
         }
+
+        // --- HISTORY LOADER (NEW) ---
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/history`);
+                const data = await response.json();
+                
+                const tbody = document.getElementById('history-body');
+                tbody.innerHTML = ""; // Clear loading text
+
+                if (data.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center'>No scans found yet.</td></tr>";
+                    return;
+                }
+
+                data.forEach(scan => {
+                    // Truncate long repo URLs for display
+                    let displayName = scan.filename;
+                    if (displayName.length > 50) displayName = displayName.substring(0, 47) + "...";
+
+                    const row = `
+                        <tr>
+                            <td title="${scan.filename}">${displayName}</td>
+                            <td>${scan.vulnerability_count}</td>
+                            <td><span class="badge badge-${scan.risk_level}">${scan.risk_level}</span></td>
+                            <td style="color: #94a3b8;">${new Date(scan.created_at).toLocaleString()}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (e) {
+                console.error("History error:", e);
+                document.getElementById('history-body').innerHTML = "<tr><td colspan='4' style='color:#ef4444; text-align:center'>Failed to load history.</td></tr>";
+            }
+        }
+
+        // Load history automatically on page load
+        window.onload = loadHistory;
     </script>
 </body>
 </html>
