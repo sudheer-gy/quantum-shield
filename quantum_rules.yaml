@@ -2,16 +2,6 @@ rules:
   - id: quantum-weak-hash-md5
     patterns:
       - pattern: hashlib.md5(...)
-    message: "🚨 QUANTUM RISK: MD5 is broken by quantum computers."
+    message: 'CRITICAL: MD5 detected'
     languages: [python]
     severity: ERROR
-
-  - id: standard-hardcoded-password
-    patterns:
-      - pattern: $X = "..."
-      - pattern-inside: |
-          def connect_to_database():
-            ...
-    message: "⚠️ SECURITY RISK: Hardcoded secret detected."
-    languages: [python]
-    severity: WARNING
