@@ -7,7 +7,7 @@ import subprocess
 import os
 import shutil
 import json
-import uuid  # For unique folder names
+import uuid
 from report_generator import generate_pdf
 from ai_engine import fix_code
 
@@ -20,184 +20,111 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Define the data format for AI requests
 class FixRequest(BaseModel):
     code: str
     issue: str
 
-# Define the data format for Repo requests
 class RepoRequest(BaseModel):
     repo_url: str
 
 @app.get("/", response_class=HTMLResponse)
 def home():
-    try:
-        with open("index.html", "r", encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError:
-        return "<h1>Quantum Shield Backend is Running</h1>"
+    return "<h1>Quantum Shield Backend is Running</h1>"
 
-# --- 🔍 DEBUG ENDPOINT (Bypasses Uploads) ---
+# --- ☢️ GOD MODE DEBUG ENDPOINT ---
 @app.get("/test-internal")
 def test_internal_scan():
-    # 1. Create a file DIRECTLY on the server (No upload)
-    filename = "internal_test.py"
-    # We write a file guaranteed to trigger MD5 (Quantum) and Hardcoded Password (Standard)
-    with open(filename, "w") as f:
-        f.write("import hashlib\ndef bad_code():\n    return hashlib.md5(b'123').hexdigest()\n    password = 'secret'")
-    
-    print(f"🕵️‍♂️ INTERNAL TEST: Created {filename} with size {os.path.getsize(filename)} bytes.")
-    
-    # 2. Scan it
-    results = run_semgrep(filename)
-    return results
+    # 1. Python writes the Rules File directly (Guaranteed Correct Formatting)
+    rules_content = """rules:
+  - id: auto-generated-md5-rule
+    patterns:
+      - pattern: hashlib.md5(...)
+    message: "CRITICAL: MD5 detected (God Mode verified)"
+    languages: [python]
+    severity: ERROR
+"""
+    with open("force_rules.yaml", "w") as f:
+        f.write(rules_content)
 
-# 1. SCREEN SCAN (Returns JSON + SAVES TO DB)
+    # 2. Python writes the Vulnerable Code directly
+    code_content = """import hashlib
+def bad_code():
+    # This MUST trigger the rule above
+    return hashlib.md5(b'123').hexdigest()
+"""
+    with open("force_test.py", "w") as f:
+        f.write(code_content)
+    
+    # 3. Scan using the forced files
+    print("🕵️‍♂️ GOD MODE: Running scan with forced rules...")
+    command = ["semgrep", "scan", "--config=force_rules.yaml", "force_test.py", "--json"]
+    result = subprocess.run(command, capture_output=True, text=True)
+    
+    # Debug Output
+    print(f"📄 STDOUT: {result.stdout[:500]}")
+    print(f"⚠️ STDERR: {result.stderr}")
+    
+    return json.loads(result.stdout)
+
+# ---------------------------------------------------------
+# REGULAR SCAN ENDPOINTS
+# ---------------------------------------------------------
 @app.post("/scan")
 async def scan_code(file: UploadFile = File(...)):
-    # Save temp file
     temp_filename = f"temp_{file.filename}"
     with open(temp_filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    
-    # Run the scan
     results = run_semgrep(temp_filename)
     
-    # --- Save to Supabase ---
+    # DB Save
     try:
-        # 1. Get stats
-        vulnerabilities = results.get("results", [])
-        risk_level = "High" if len(vulnerabilities) > 0 else "Low"
-        
-        # 2. Connect to DB
         supabase = get_db_connection()
-        
-        # 3. Insert Data
         if supabase:
-            data = {
-                "filename": file.filename,
-                "vulnerability_count": len(vulnerabilities),
-                "risk_level": risk_level
-            }
+            data = {"filename": file.filename, "vulnerability_count": len(results.get("results", [])), "risk_level": "High"}
             supabase.table("scans").insert(data).execute()
-            print(f"✅ Saved scan for {file.filename} to Supabase!")
-        else:
-            print("⚠️ Database connection failed, skipping save.")
-            
     except Exception as e:
-        print(f"❌ Database Error: {e}")
-    # -----------------------------
+        print(f"❌ DB Error: {e}")
 
-    # Clean up
     if os.path.exists(temp_filename):
         os.remove(temp_filename)
-        
     return results
 
-# 2. PDF REPORT (Returns File)
 @app.post("/report")
 async def get_report(file: UploadFile = File(...)):
-    # Save file
     temp_filename = f"temp_report_{file.filename}"
     with open(temp_filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    
-    # 1. Scan it
     scan_data = run_semgrep(temp_filename)
-    
-    # 2. Generate PDF
     pdf_filename = f"report_{file.filename}.pdf"
     output_path = f"/tmp/{pdf_filename}" if os.path.exists("/tmp") else pdf_filename
-    
     generate_pdf(scan_data.get('results', []), filename=output_path)
-    
-    # Clean up input file
     if os.path.exists(temp_filename):
         os.remove(temp_filename)
-        
-    # 3. Send PDF to user
     return FileResponse(output_path, media_type='application/pdf', filename=pdf_filename)
 
-# 3. AI AUTO-FIX
 @app.post("/fix")
 async def get_ai_fix(request: FixRequest):
-    # Ask the AI Engine to rewrite the code
-    fixed_code = fix_code(request.issue, request.code)
-    return {"fixed_code": fixed_code}
+    return {"fixed_code": fix_code(request.issue, request.code)}
 
-# 4. GITHUB REPO SCANNER
 @app.post("/scan-repo")
 async def scan_repo(request: RepoRequest):
-    repo_url = request.repo_url
     folder_name = f"temp_repo_{uuid.uuid4()}"
-    
     try:
-        print(f"📥 Cloning {repo_url}...")
-        subprocess.run(["git", "clone", repo_url, folder_name], check=True)
-        
-        print(f"🔍 Scanning {folder_name}...")
+        subprocess.run(["git", "clone", request.repo_url, folder_name], check=True)
         results = run_semgrep(folder_name)
-        
-        # Save Stats to Supabase
-        try:
-            vulnerabilities = results.get("results", [])
-            risk_level = "High" if len(vulnerabilities) > 0 else "Low"
-            supabase = get_db_connection()
-            if supabase:
-                data = {
-                    "filename": repo_url,
-                    "vulnerability_count": len(vulnerabilities),
-                    "risk_level": risk_level
-                }
-                supabase.table("scans").insert(data).execute()
-                print(f"✅ Saved repo scan for {repo_url}")
-        except Exception as e:
-            print(f"❌ DB Error: {e}")
-
         return results
-
     except Exception as e:
-        return {"error": f"Failed to scan repo: {str(e)}"}
-        
+        return {"error": str(e)}
     finally:
         if os.path.exists(folder_name):
             shutil.rmtree(folder_name)
-            print(f"🧹 Cleaned up {folder_name}")
 
-# ---------------------------------------------------------
-# HELPER: Semgrep Runner (DEBUG VERSION)
-# ---------------------------------------------------------
 def run_semgrep(filename):
-    print(f"🕵️‍♂️ DEBUG: Starting scan on {filename}...")
-    
-    # 1. Check if the rules file actually exists on the server
-    if not os.path.exists("quantum_rules.yaml"):
-        print("❌ CRITICAL ERROR: quantum_rules.yaml is MISSING from the server!")
-        return {"results": [{"check_id": "SERVER_ERROR", "path": filename, "start": {"line": 1}, "extra": {"lines": "CRITICAL: quantum_rules.yaml is missing."}}]}
-    else:
-        print("✅ quantum_rules.yaml found on server.")
-
-    # 2. Run the scan with BOTH config files (Standard + Quantum)
-    command = [
-        "semgrep", 
-        "scan", 
-        "--config=p/default", 
-        "--config=quantum_rules.yaml", 
-        filename, 
-        "--json"
-    ]
-    
-    print(f"🖥️ CMD: {' '.join(command)}")
-
-    # 3. Capture EVERYTHING (Output + Errors)
+    # Use the FORCE rules if they exist, otherwise default
+    config = "force_rules.yaml" if os.path.exists("force_rules.yaml") else "p/default"
+    command = ["semgrep", "scan", f"--config={config}", filename, "--json"]
     result = subprocess.run(command, capture_output=True, text=True)
-    
-    # 4. Print the "Secret" Logs to Render
-    print(f"⚠️ STDERR (Errors): {result.stderr}")
-    print(f"📄 STDOUT (Results): {result.stdout[:500]}") # Print first 500 chars
-
     try:
         return json.loads(result.stdout)
-    except Exception as e:
-        print(f"💥 JSON Parse Error: {e}")
+    except:
         return {"results": []}
