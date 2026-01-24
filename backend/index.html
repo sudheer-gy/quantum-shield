@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantum-Shield Enterprise</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #3b82f6; --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --danger: #ef4444; --success: #22c55e; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
@@ -11,61 +12,46 @@
         .navbar { width: 100%; background: var(--card); padding: 20px; text-align: center; border-bottom: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
         .navbar h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
         
-        .container { max-width: 900px; width: 100%; padding: 40px 20px; }
+        .container { max-width: 1000px; width: 100%; padding: 40px 20px; display: flex; flex-direction: column; gap: 30px; }
         
-        /* Toggle Switch */
+        /* DASHBOARD STATS ROW */
+        .stats-row { display: flex; gap: 20px; flex-wrap: wrap; }
+        .stat-card { flex: 1; background: var(--card); padding: 20px; border-radius: 8px; text-align: center; border-top: 4px solid var(--primary); }
+        .stat-number { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
+        .stat-label { color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* CHART SECTION */
+        .chart-container { background: var(--card); padding: 20px; border-radius: 8px; height: 300px; display: flex; justify-content: center; align-items: center; }
+
+        /* INPUT ZONES */
         .mode-switch { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
         .mode-btn { background: transparent; border: 1px solid #475569; color: #94a3b8; padding: 10px 20px; border-radius: 20px; cursor: pointer; transition: 0.3s; }
         .mode-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
         
-        /* Input Zones */
         .input-group { display: none; }
         .input-group.active { display: block; }
-
-        .upload-zone {
-            border: 2px dashed #475569; border-radius: 12px; padding: 50px; text-align: center;
-            background: rgba(30, 41, 59, 0.5); transition: 0.3s; cursor: pointer;
-        }
+        .upload-zone { border: 2px dashed #475569; border-radius: 12px; padding: 40px; text-align: center; background: rgba(30, 41, 59, 0.5); cursor: pointer; transition: 0.3s; }
         .upload-zone:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
-        .upload-icon { font-size: 3rem; margin-bottom: 15px; opacity: 0.8; }
+        .repo-input { width: 90%; padding: 15px; border-radius: 8px; border: 1px solid #475569; background: #020617; color: white; margin-top: 15px; }
+        .btn-main { margin-top: 20px; background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; }
         
-        .repo-input {
-            width: 90%; padding: 15px; border-radius: 8px; border: 1px solid #475569; background: #020617; color: white; font-size: 1rem; margin-top: 15px;
-        }
-        
-        /* Main Button (Upload) */
-        .btn-main {
-            margin-top: 20px; background: var(--primary); color: white; border: none;
-            padding: 12px 24px; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s;
-        }
-        .btn-main:hover { background: #2563eb; }
-
-        /* AI Fix Button (Purple) */
-        .ai-btn {
-            background: #8b5cf6; color: white; border: none; padding: 8px 16px; 
-            border-radius: 4px; cursor: pointer; font-size: 0.9em; margin-top: 10px;
-            display: inline-flex; align-items: center; gap: 5px;
-        }
-        .ai-btn:hover { background: #7c3aed; }
-        .ai-btn:disabled { opacity: 0.7; cursor: wait; }
-
-        .results-area { margin-top: 40px; display: none; }
+        /* RESULTS & BUTTONS */
+        .results-area { display: none; margin-top: 20px; }
         .card { background: var(--card); padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid; }
         .critical { border-left-color: #ef4444; }
         .warning { border-left-color: #eab308; }
+        .ai-btn { background: #8b5cf6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px; display: inline-flex; align-items: center; gap: 5px; }
+        .pdf-btn { background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 8px; }
         
-        pre { background: #020617; padding: 15px; border-radius: 6px; overflow-x: auto; color: #a5b4fc; margin: 10px 0; }
+        pre { background: #020617; padding: 15px; border-radius: 6px; overflow-x: auto; color: #a5b4fc; }
         .fixed-code { border: 1px solid #22c55e; color: #86efac; }
-        
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; display: none; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* HISTORY TABLE STYLES */
-        .history-section { margin-top: 50px; }
+        /* HISTORY TABLE */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; background: var(--card); border-radius: 8px; overflow: hidden; }
         th, td { text-align: left; padding: 15px; border-bottom: 1px solid #334155; }
-        th { background: rgba(0,0,0,0.2); color: #94a3b8; font-weight: 600; }
-        tr:last-child td { border-bottom: none; }
+        th { background: rgba(0,0,0,0.2); color: #94a3b8; }
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
         .badge-High { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
         .badge-Low { background: rgba(34, 197, 94, 0.2); color: #86efac; }
@@ -79,24 +65,43 @@
 
     <div class="container">
         
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Total Scans</div>
+                <div class="stat-number" id="total-scans">0</div>
+            </div>
+            <div class="stat-card" style="border-top-color: #ef4444;">
+                <div class="stat-label">High Risks</div>
+                <div class="stat-number" style="color: #ef4444;" id="high-risks">0</div>
+            </div>
+            <div class="stat-card" style="border-top-color: #22c55e;">
+                <div class="stat-label">Secure Files</div>
+                <div class="stat-number" style="color: #22c55e;" id="secure-files">0</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="riskChart"></canvas>
+        </div>
+
         <div class="mode-switch">
             <button class="mode-btn active" onclick="switchMode('file')">📂 Upload File</button>
             <button class="mode-btn" onclick="switchMode('repo')">🐙 Scan GitHub Repo</button>
         </div>
 
         <div id="file-mode" class="input-group active">
-            <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
                 <div class="upload-icon">📂</div>
-                <h3>Drag & Drop File</h3>
-                <p style="color: #94a3b8;">Supports .py, .js, .java, .cpp</p>
+                <h3>Drag & Drop File to Scan</h3>
+                <p style="color: #94a3b8;">Python, JavaScript, Java, C++</p>
                 <input type="file" id="fileInput" style="display: none;">
             </div>
         </div>
 
         <div id="repo-mode" class="input-group">
-            <div class="upload-zone" style="border: 1px solid #475569; border-style: solid;">
+            <div class="upload-zone" style="border-style: solid;">
                 <div class="upload-icon">🐙</div>
-                <h3>Paste GitHub Repository URL</h3>
+                <h3>GitHub Repository URL</h3>
                 <input type="text" id="repoUrl" class="repo-input" placeholder="https://github.com/username/project">
                 <button class="btn-main" onclick="scanRepo()">🚀 Scan Repository</button>
             </div>
@@ -105,39 +110,64 @@
         <div class="loader" id="loader"></div>
 
         <div class="results-area" id="resultsArea">
-            <h2 style="border-bottom: 1px solid #334155; padding-bottom: 10px;">Audit Results</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 10px;">
+                <h2 style="margin:0;">Audit Findings</h2>
+                <button class="pdf-btn" id="pdfBtn" onclick="downloadReport()">
+                    📄 Download PDF Report
+                </button>
+            </div>
             <div id="findingsList" style="margin-top: 20px;"></div>
         </div>
 
-        <div class="history-section">
+        <div>
             <h2 style="border-bottom: 1px solid #334155; padding-bottom: 10px;">📜 Recent Scan History</h2>
             <table id="history-table">
                 <thead>
                     <tr>
-                        <th>Filename / Repo</th>
+                        <th>Filename</th>
                         <th>Vulnerabilities</th>
                         <th>Risk Level</th>
                         <th>Time</th>
                     </tr>
                 </thead>
-                <tbody id="history-body">
-                    <tr><td colspan="4" style="text-align:center; color: #94a3b8;">Loading history...</td></tr>
-                </tbody>
+                <tbody id="history-body"></tbody>
             </table>
         </div>
     </div>
 
     <script>
         const API_BASE_URL = "https://quantum-shield.onrender.com"; 
-
-        const loader = document.getElementById('loader');
-        const resultsArea = document.getElementById('resultsArea');
-        const findingsList = document.getElementById('findingsList');
+        
+        // --- 📊 CHART LOGIC ---
+        let riskChart = null;
+        function updateChart(high, low) {
+            const ctx = document.getElementById('riskChart').getContext('2d');
+            if (riskChart) riskChart.destroy(); // Destroy old chart to avoid overlay
+            
+            riskChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['High Risk', 'Low/Secure'],
+                    datasets: [{
+                        data: [high, low],
+                        backgroundColor: ['#ef4444', '#22c55e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#e2e8f0' } },
+                        title: { display: true, text: 'Vulnerability Risk Ratio', color: '#e2e8f0', font: { size: 16 } }
+                    }
+                }
+            });
+        }
 
         function switchMode(mode) {
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.input-group').forEach(g => g.classList.remove('active'));
-            
             if(mode === 'file') {
                 document.querySelector('button[onclick="switchMode(\'file\')"]').classList.add('active');
                 document.getElementById('file-mode').classList.add('active');
@@ -147,25 +177,26 @@
             }
         }
 
-        // --- 1. File Upload Logic ---
+        // --- SCANNING LOGIC ---
+        let lastUploadedFile = null; // Store file for PDF report
+
         document.getElementById('fileInput').addEventListener('change', async function() {
             const file = this.files[0];
             if (!file) return;
+            lastUploadedFile = file; // Save for PDF
             runScan('/scan', { file: file }, true);
         });
 
-        // --- 2. Repo Scan Logic ---
         function scanRepo() {
             const url = document.getElementById('repoUrl').value;
             if(!url) return alert("Please enter a GitHub URL");
             runScan('/scan-repo', { repo_url: url }, false);
         }
 
-        // --- Shared Scan Function ---
         async function runScan(endpoint, payload, isFile) {
-            loader.style.display = 'block';
-            resultsArea.style.display = 'none';
-            findingsList.innerHTML = '';
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('resultsArea').style.display = 'none';
+            document.getElementById('findingsList').innerHTML = '';
 
             try {
                 let response;
@@ -175,110 +206,107 @@
                     response = await fetch(`${API_BASE_URL}${endpoint}`, { method: "POST", body: formData });
                 } else {
                     response = await fetch(`${API_BASE_URL}${endpoint}`, { 
-                        method: "POST", 
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload) 
+                        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) 
                     });
                 }
-                
                 const data = await response.json();
-                
-                loader.style.display = 'none';
-                resultsArea.style.display = 'block';
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('resultsArea').style.display = 'block';
                 displayResults(data.results || []);
-                loadHistory(); // Refresh history immediately after scan!
+                loadHistory(); 
 
             } catch (error) {
                 console.error(error);
-                loader.style.display = 'none';
-                alert("Scan failed. Check console.");
+                alert("Scan failed.");
             }
         }
 
         function displayResults(results) {
+            const container = document.getElementById('findingsList');
             if (results.length === 0) {
-                findingsList.innerHTML = '<div class="card" style="border-left-color: #22c55e;"><h3>✅ Clean Scan</h3><p>No vulnerabilities found.</p></div>';
+                container.innerHTML = '<div class="card" style="border-left-color: #22c55e;"><h3>✅ Clean Scan</h3><p>No vulnerabilities found.</p></div>';
                 return;
             }
             results.forEach((issue, index) => {
                 const isCritical = !issue.check_id.toLowerCase().includes('aes');
                 const severity = isCritical ? 'critical' : 'warning';
                 const badge = isCritical ? '🚨 CRITICAL' : '⚠️ WARNING';
-                const codeSnippet = issue.extra.lines ? issue.extra.lines.trim() : "Code not available";
-
-                const btnId = `fix-btn-${index}`;
-                const resultId = `fix-result-${index}`;
                 
-                findingsList.innerHTML += `
+                container.innerHTML += `
                     <div class="card ${severity}">
                         <h3 style="margin: 0 0 10px 0;">${badge}: ${issue.check_id}</h3>
                         <p style="color: #94a3b8; font-size: 0.9em;">File: ${issue.path} (Line ${issue.start.line})</p>
-                        <pre>${codeSnippet}</pre>
-                        
-                         <button id="${btnId}" class="ai-btn" onclick="fixCode(${index})">
-                             ✨ Auto-Fix with AI
-                         </button>
-                                
-                         <div id="${resultId}" style="display:none; margin-top:15px;"></div>
-
-                         <textarea id="raw-code-${index}" style="display:none">${codeSnippet}</textarea>
+                        <pre>${issue.extra.lines ? issue.extra.lines.trim() : "Code unavailable"}</pre>
+                         <button id="fix-btn-${index}" class="ai-btn" onclick="fixCode(${index})">✨ Auto-Fix with AI</button>
+                         <div id="fix-result-${index}" style="display:none; margin-top:15px;"></div>
+                         <textarea id="raw-code-${index}" style="display:none">${issue.extra.lines}</textarea>
                          <textarea id="raw-issue-${index}" style="display:none">${issue.check_id}</textarea>
                     </div>
                 `;
             });
         }
 
-        // --- AI Fix Function ---
-        async function fixCode(index) {
-            const btn = document.getElementById(`fix-btn-${index}`);
-            const resultBox = document.getElementById(`fix-result-${index}`);
-            const code = document.getElementById(`raw-code-${index}`).value;
-            const issue = document.getElementById(`raw-issue-${index}`).value;
-
-            btn.innerText = "⏳ AI is thinking...";
-            btn.disabled = true;
-
+        // --- 📄 PDF DOWNLOAD LOGIC ---
+        async function downloadReport() {
+            if (!lastUploadedFile) return alert("Please run a file scan first.");
+            const formData = new FormData();
+            formData.append("file", lastUploadedFile);
+            
+            const btn = document.getElementById('pdfBtn');
+            btn.innerText = "⏳ Generating PDF...";
+            
             try {
-                const response = await fetch(`${API_BASE_URL}/fix`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ code: code, issue: issue })
-                });
-                
-                const data = await response.json();
-                
-                resultBox.style.display = 'block';
-                resultBox.innerHTML = `
-                    <p style="color: #4ade80; font-weight: bold; margin-bottom: 5px;">✅ AI Suggested Fix:</p>
-                    <pre class="fixed-code">${data.fixed_code}</pre>
-                `;
-                btn.innerText = "✨ Fixed!";
-            } catch (error) {
-                alert("AI failed to respond. Check server.");
+                const response = await fetch(`${API_BASE_URL}/report`, { method: "POST", body: formData });
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `QuantumShield_Report_${Date.now()}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                btn.innerText = "📄 Download PDF Report";
+            } catch (e) {
+                alert("Failed to download PDF");
                 btn.innerText = "❌ Error";
             }
         }
 
-        // --- HISTORY LOADER (NEW) ---
+        async function fixCode(index) {
+            // (Same AI logic as before)
+            const btn = document.getElementById(`fix-btn-${index}`);
+            const resultBox = document.getElementById(`fix-result-${index}`);
+            const code = document.getElementById(`raw-code-${index}`).value;
+            const issue = document.getElementById(`raw-issue-${index}`).value;
+            btn.innerText = "⏳ AI is thinking...";
+            try {
+                const response = await fetch(`${API_BASE_URL}/fix`, {
+                    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code, issue: issue })
+                });
+                const data = await response.json();
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = `<p style="color: #4ade80;">✅ Suggested Fix:</p><pre class="fixed-code">${data.fixed_code}</pre>`;
+                btn.innerText = "✨ Fixed!";
+            } catch (e) { btn.innerText = "❌ Error"; }
+        }
+
+        // --- 📜 HISTORY & STATS LOGIC ---
         async function loadHistory() {
             try {
                 const response = await fetch(`${API_BASE_URL}/history`);
                 const data = await response.json();
-                
                 const tbody = document.getElementById('history-body');
-                tbody.innerHTML = ""; // Clear loading text
+                tbody.innerHTML = ""; 
 
-                if (data.length === 0) {
-                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center'>No scans found yet.</td></tr>";
-                    return;
-                }
+                let highCount = 0;
+                let secureCount = 0;
 
                 data.forEach(scan => {
-                    // Truncate long repo URLs for display
-                    let displayName = scan.filename;
-                    if (displayName.length > 50) displayName = displayName.substring(0, 47) + "...";
+                    if (scan.risk_level === 'High') highCount++;
+                    else secureCount++;
 
-                    const row = `
+                    let displayName = scan.filename.length > 50 ? scan.filename.substring(0, 47) + "..." : scan.filename;
+                    tbody.innerHTML += `
                         <tr>
                             <td title="${scan.filename}">${displayName}</td>
                             <td>${scan.vulnerability_count}</td>
@@ -286,15 +314,19 @@
                             <td style="color: #94a3b8;">${new Date(scan.created_at).toLocaleString()}</td>
                         </tr>
                     `;
-                    tbody.innerHTML += row;
                 });
-            } catch (e) {
-                console.error("History error:", e);
-                document.getElementById('history-body').innerHTML = "<tr><td colspan='4' style='color:#ef4444; text-align:center'>Failed to load history.</td></tr>";
-            }
+
+                // Update Dashboard Numbers
+                document.getElementById('total-scans').innerText = data.length;
+                document.getElementById('high-risks').innerText = highCount;
+                document.getElementById('secure-files').innerText = secureCount;
+
+                // Update Chart
+                updateChart(highCount, secureCount);
+
+            } catch (e) { console.error("History error:", e); }
         }
 
-        // Load history automatically on page load
         window.onload = loadHistory;
     </script>
 </body>
