@@ -32,11 +32,11 @@
             padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-block; margin-bottom: 20px;
         }
         .hero-title {
-            font-size: 3.5rem; font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; margin: 0 auto 20px; max-width: 800px;
+            font-size: 3.5rem; font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; margin: 0 auto 20px; max-width: 900px;
             background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         .hero-sub {
-            font-size: 1.1rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 40px; line-height: 1.6;
+            font-size: 1.1rem; color: var(--text-muted); max-width: 700px; margin: 0 auto 40px; line-height: 1.6;
         }
         .hero-btns { display: flex; gap: 15px; justify-content: center; }
         .btn-hero {
@@ -48,25 +48,26 @@
         .btn-secondary:hover { background: rgba(255,255,255,0.1); }
 
         /* LOGO STRIP */
+        .trust-header { text-align:center; color:#a1a1aa; font-size:0.8rem; margin-top:80px; margin-bottom:20px; text-transform:uppercase; letter-spacing:1.5px; font-weight:600; opacity:0.7; }
         .logo-strip {
-            display: flex; gap: 40px; justify-content: center; opacity: 0.4; margin: 60px 0; flex-wrap: wrap;
+            display: flex; gap: 50px; justify-content: center; opacity: 0.5; margin-bottom: 60px; flex-wrap: wrap;
         }
-        .logo-item { font-size: 1.5rem; color: white; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+        .logo-item { font-size: 1.5rem; color: white; display: flex; align-items: center; gap: 10px; font-weight: 600; }
 
         /* FEATURE GRID */
         .feature-section { width: 100%; max-width: 1200px; padding: 60px 20px; }
-        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; }
         .feature-card {
-            background: var(--card-bg); border: 1px solid var(--border-color); padding: 30px; border-radius: 16px;
+            background: var(--card-bg); border: 1px solid var(--border-color); padding: 35px; border-radius: 16px;
             transition: 0.2s; position: relative; overflow: hidden;
         }
         .feature-card:hover { border-color: var(--primary); transform: translateY(-5px); }
         .feature-icon {
-            width: 48px; height: 48px; background: rgba(59, 130, 246, 0.1); color: var(--primary);
-            border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 20px;
+            width: 50px; height: 50px; background: rgba(59, 130, 246, 0.1); color: var(--primary);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 25px;
         }
-        .feature-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 10px; color: white; }
-        .feature-desc { color: var(--text-muted); line-height: 1.5; font-size: 0.95rem; }
+        .feature-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 15px; color: white; }
+        .feature-desc { color: var(--text-muted); line-height: 1.6; font-size: 0.95rem; }
 
         /* APP STYLES (Hidden by default) */
         .app-container { display: none; width: 100%; flex-direction: column; align-items: center; }
@@ -131,7 +132,7 @@
         .log-line { color: var(--success); margin-bottom: 8px; font-size: 0.9rem; animation: fadeIn 0.3s forwards; opacity: 0; }
         @keyframes fadeIn { to { opacity: 1; } }
 
-        /* --- NEW: MAGICAL AI BUTTON --- */
+        /* --- MAGICAL AI BUTTON --- */
         .ai-btn {
             background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
             color: white; border: 1px solid rgba(255, 255, 255, 0.2);
@@ -143,7 +144,7 @@
             transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6); filter: brightness(1.1);
         }
 
-        /* --- NEW: FIXED CODE BLOCK --- */
+        /* --- FIXED CODE BLOCK --- */
         .code-block {
             background: #0f0f12; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); position: relative; min-height: 200px;
         }
@@ -184,13 +185,14 @@
     <div id="landing-page">
         <div class="hero-section">
             <div class="hero-badge">⚡ NEW: Post-Quantum Standard Support</div>
-            <h1 class="hero-title">Secure Your Code Against<br>Quantum Attacks</h1>
-            <p class="hero-sub">Detect weak algorithms, hardcoded secrets, and vulnerabilities before they become breaches. AI-Powered scans integrated seamlessly into your CI/CD pipeline.</p>
+            <h1 class="hero-title">Future-Proof Your Encryption<br>Before Quantum Breaks It</h1>
+            <p class="hero-sub">Automated scans and AI-driven fixes ensure NIST-compliant security without disrupting your CI/CD pipelines—deploy today to stay ahead of inevitable threats.</p>
             <div class="hero-btns">
                 <button class="btn-hero btn-primary" onclick="enterApp()">Try Live Scanner</button>
                 <button class="btn-hero btn-secondary">Book Enterprise Demo</button>
             </div>
 
+            <div class="trust-header">Engineered for Elite Stacks</div>
             <div class="logo-strip">
                 <div class="logo-item"><i class="fa-brands fa-github"></i> GitHub</div>
                 <div class="logo-item"><i class="fa-brands fa-gitlab"></i> GitLab</div>
@@ -203,19 +205,19 @@
         <div class="feature-section">
             <div class="feature-grid">
                 <div class="feature-card">
-                    <div class="feature-icon"><i class="fa-solid fa-microchip"></i></div>
-                    <div class="feature-title">Post-Quantum Ready</div>
-                    <div class="feature-desc">Automatic detection of legacy encryption methods (RSA, MD5) that are vulnerable to quantum computing attacks.</div>
+                    <div class="feature-icon"><i class="fa-solid fa-bolt"></i></div>
+                    <div class="feature-title">Lightning-Fast Integration</div>
+                    <div class="feature-desc">Seamlessly embed into your CI/CD workflows with zero performance drag—scans complete in seconds, keeping your pipelines agile and uninterrupted.</div>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-                    <div class="feature-title">AI Auto-Remediation</div>
-                    <div class="feature-desc">Don't just find bugs—fix them. Our AI engine suggests secure code patches that you can apply with one click.</div>
+                    <div class="feature-title">Intelligent Auto-Remediation</div>
+                    <div class="feature-desc">One-click fixes powered by AI eliminate vulnerabilities instantly, freeing developers from manual patches and slashing remediation time by 90%.</div>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon"><i class="fa-solid fa-server"></i></div>
-                    <div class="feature-title">CI/CD Integration</div>
-                    <div class="feature-desc">Block vulnerabilities before they merge. Drop our YAML config into GitHub Actions for instant protection.</div>
+                    <div class="feature-icon"><i class="fa-solid fa-file-shield"></i></div>
+                    <div class="feature-title">Built-In Regulatory Assurance</div>
+                    <div class="feature-desc">Generate audit-ready reports aligned with NIST post-quantum standards, ensuring effortless compliance and peace of mind for enterprise audits.</div>
                 </div>
             </div>
         </div>
