@@ -1,0 +1,19 @@
+rules:
+  - id: nist-pqc-rsa-violation
+    patterns:
+      - pattern-either:
+          - pattern: Crypto.PublicKey.RSA.generate(...)
+          - pattern: RSA.generate(...)
+          - pattern: from Crypto.PublicKey import RSA
+    message: "CRITICAL: RSA Encryption detected. This is vulnerable to Quantum Shor's Algorithm. Migrate to NIST PQC standards (CRYSTALS-Kyber)."
+    languages: [python]
+    severity: ERROR
+
+  - id: nist-pqc-hardcoded-secret
+    patterns:
+      - pattern-either:
+          - pattern: $KEY = "..."
+          - pattern: $KEY = '...'
+    message: "HIGH RISK: Hardcoded secret detected. Store keys in ENV variables."
+    languages: [python, javascript]
+    severity: WARNING
