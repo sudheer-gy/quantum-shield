@@ -49,7 +49,7 @@ def verify_api_key(x_api_key: str = Header(None)):
             response = supabase.table("api_keys").select("*").eq("key_value", incoming_hash).execute()
             if not response.data:
                 if x_api_key == "test-key-123":
-                    return {"project_name": "Test Demo User", "id": "test-user"}
+                    return {"project_name": "Test Demo User", "id": None}
                 raise HTTPException(status_code=401, detail="Invalid API Key")
             supabase.table("api_keys").update({"last_used_at": datetime.now().isoformat()}).eq("key_value", incoming_hash).execute()
             return response.data[0]
