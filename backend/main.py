@@ -117,6 +117,7 @@ async def scan_code(file: UploadFile = File(...), x_api_key: str = Header(None))
     with open(temp_filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
+    # Run the upgraded engine
     results = run_semgrep(temp_filename)
     
     try:
@@ -175,27 +176,70 @@ async def scan_repo(request: RepoRequest):
     finally:
         if os.path.exists(folder_name): shutil.rmtree(folder_name)
 
+# ---------------------------------------------------------
+# 🧠 THE ENGINE: NIST POST-QUANTUM RULES (v2.7)
+# ---------------------------------------------------------
 def run_semgrep(filename):
     print(f"🕵️‍♂️ Scanning {filename}...")
+    
+    # Updated Ruleset covering RSA, ECC, AES, and Secrets
     rules_content = """rules:
-  - id: quantum-weak-hash-md5
+  # --- 1. LEGACY HASHES ---
+  - id: quantum-weak-hash-md5-sha1
     patterns:
-      - pattern: hashlib.md5(...)
-    message: "🚨 QUANTUM RISK: MD5 is broken by quantum computers."
+      - pattern-either:
+          - pattern: hashlib.md5(...)
+          - pattern: hashlib.sha1(...)
+    message: "🚨 QUANTUM RISK: MD5/SHA1 are broken. Use SHA-3 or Shake256 (NIST Approved)."
     languages: [python]
     severity: ERROR
 
-  - id: standard-hardcoded-password
+  # --- 2. ASYMMETRIC ENCRYPTION (The Big Ones) ---
+  - id: quantum-weak-rsa
     patterns:
-      - pattern: $X = "..."
-      - pattern-inside: |
-          def connect_to_database():
-            ...
-    message: "⚠️ SECURITY RISK: Hardcoded secret detected."
+      - pattern-either:
+          - pattern: Crypto.PublicKey.RSA.generate(...)
+          - pattern: from Crypto.PublicKey import RSA
+          - pattern: cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(...)
+    message: "🚨 QUANTUM RISK: RSA is broken by Shor's Algorithm. Migrate to NIST PQC (CRYSTALS-Kyber)."
+    languages: [python]
+    severity: ERROR
+
+  - id: quantum-weak-ecc-dh
+    patterns:
+      - pattern-either:
+          - pattern: from cryptography.hazmat.primitives.asymmetric import ec
+          - pattern: ecdsa.SigningKey.generate(...)
+          - pattern: from pyDH import DiffieHellman
+    message: "🚨 QUANTUM RISK: Elliptic Curve (ECC) and Diffie-Hellman are broken by quantum computers. Switch to Post-Quantum standards."
+    languages: [python]
+    severity: ERROR
+
+  # --- 3. SYMMETRIC ENCRYPTION (Key Length) ---
+  - id: quantum-weak-aes-128
+    patterns:
+      - pattern: AES.new($KEY, ...)
+      - metavariable-pattern:
+          metavariable: $KEY
+          pattern-either:
+            - pattern: b"..." 
+    message: "⚠️ QUANTUM WARNING: AES-128 is weakened by Grover's Algorithm. NIST recommends AES-256 for long-term quantum resistance."
+    languages: [python]
+    severity: WARNING
+
+  # --- 4. SECRETS (General Security) ---
+  - id: standard-hardcoded-secret
+    patterns:
+      - pattern-either:
+          - pattern: $X = "qs_live_..."
+          - pattern: $X = "ghp_..."
+          - pattern: $X = "sk_live_..."
+    message: "⚠️ SECURITY RISK: Hardcoded API Key detected. Move to Environment Variables."
     languages: [python]
     severity: WARNING
 """
     with open("quantum_rules.yaml", "w") as f: f.write(rules_content)
+    
     command = ["semgrep", "scan", "--config=p/default", "--config=quantum_rules.yaml", filename, "--json"]
     result = subprocess.run(command, capture_output=True, text=True)
     try: return json.loads(result.stdout)
