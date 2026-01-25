@@ -156,16 +156,48 @@
             color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: 0.2s;
         }
         .copy-btn:hover { background: rgba(255,255,255,0.2); }
+
+        /* --- NEW: WAITLIST MODAL STYLES --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-card {
+            background: #18181b; border: 1px solid var(--border-color);
+            padding: 40px; border-radius: 16px; max-width: 400px; width: 90%;
+            text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .modal-input {
+            width: 100%; padding: 12px; margin-top: 20px; background: #09090b;
+            border: 1px solid var(--border-color); color: white; border-radius: 8px;
+            font-size: 1rem;
+        }
+        .modal-btn {
+            width: 100%; padding: 12px; margin-top: 15px; background: var(--primary);
+            color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;
+        }
+        .modal-btn:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
+
+    <div id="waitlist-modal" class="modal-overlay">
+        <div class="modal-card">
+            <h2 style="margin:0 0 10px 0;">Join the Waitlist</h2>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Quantum Shield is currently in private beta. Enter your email to request access.</p>
+            <input type="text" id="access-code" class="modal-input" placeholder="name@company.com">
+            <button class="modal-btn" onclick="checkAccess()">Request Access</button>
+            <div id="access-msg" style="margin-top:15px; font-size:0.85rem;"></div>
+        </div>
+    </div>
 
     <header class="navbar-landing" id="landing-nav">
         <div class="brand">
             <i class="fa-solid fa-shield-halved logo-icon"></i>
             <h1>Quantum Shield</h1>
         </div>
-        <button class="btn-secondary" style="padding: 8px 16px; border-radius:6px; background:transparent; font-size:0.9rem;" onclick="enterApp()">Login</button>
+        <button class="btn-secondary" style="padding: 8px 16px; border-radius:6px; background:transparent; font-size:0.9rem;" onclick="openModal()">Login</button>
     </header>
 
     <header class="navbar-app" id="app-nav">
@@ -177,7 +209,7 @@
                 <div class="nav-item" onclick="switchView('settings')">Settings</div>
             </nav>
             <div class="nav-right">
-                <div class="user-avatar">JS</div>
+                <div class="user-avatar" title="Admin User">JS</div>
             </div>
         </div>
     </header>
@@ -188,7 +220,7 @@
             <h1 class="hero-title">Future-Proof Your Encryption<br>Before Quantum Breaks It</h1>
             <p class="hero-sub">Automated scans and AI-driven fixes ensure NIST-compliant security without disrupting your CI/CD pipelines—deploy today to stay ahead of inevitable threats.</p>
             <div class="hero-btns">
-                <button class="btn-hero btn-primary" onclick="enterApp()">Try Live Scanner</button>
+                <button class="btn-hero btn-primary" onclick="openModal()">Try Live Scanner</button>
                 <button class="btn-hero btn-secondary">Book Enterprise Demo</button>
             </div>
 
@@ -366,6 +398,45 @@ jobs:
     <script>
         const API_BASE_URL = "https://quantum-shield.onrender.com"; 
 
+        // --- AUTH & WAITLIST LOGIC ---
+        function openModal() {
+            document.getElementById('waitlist-modal').style.display = 'flex';
+        }
+
+        async function checkAccess() {
+            const input = document.getElementById('access-code').value.trim();
+            const msg = document.getElementById('access-msg');
+            const btn = document.querySelector('.modal-btn');
+
+            // 🛑 THE VIP BACKDOOR 🛑
+            if (input === "admin-quantum-2026") {
+                // If it's you, log you in immediately
+                msg.style.color = "#4ade80";
+                msg.innerHTML = "Access Granted. Welcome back, Founder.";
+                setTimeout(() => {
+                    document.getElementById('waitlist-modal').style.display = 'none';
+                    enterApp();
+                }, 1000);
+                return;
+            }
+
+            // 🛑 FOR EVERYONE ELSE
+            if (input.includes("@")) {
+                btn.innerHTML = "Checking...";
+                // Simulate saving to DB (Fake delay for now)
+                setTimeout(() => {
+                    msg.style.color = "#3b82f6";
+                    msg.innerHTML = "<b>You are on the list!</b><br>We will notify you when your spot opens up.";
+                    btn.innerHTML = "Request Sent";
+                    btn.disabled = true;
+                    btn.style.opacity = "0.5";
+                }, 800);
+            } else {
+                msg.style.color = "#ef4444";
+                msg.innerHTML = "Please enter a valid email address.";
+            }
+        }
+
         // --- NAVIGATION LOGIC ---
         function enterApp() {
             document.getElementById('landing-page').style.display = 'none';
@@ -374,6 +445,7 @@ jobs:
             document.getElementById('app-nav').style.display = 'block';
             document.getElementById('app-footer').classList.add('active');
             window.scrollTo(0,0);
+            loadHistory(); // Only load data if we actually enter the app
         }
 
         function switchView(view) {
@@ -504,7 +576,6 @@ jobs:
         function copyKey() { navigator.clipboard.writeText(document.getElementById('api-key-text').innerText); alert("Copied"); }
         function copyYaml() { navigator.clipboard.writeText(document.getElementById('yaml-code').innerText); alert("Copied"); }
         function downloadReport() { alert("Report generation started..."); }
-        window.onload = loadHistory;
     </script>
 </body>
 </html>
